@@ -1,5 +1,6 @@
-import { ShieldCheck, Users, Zap, Wallet, Network, Video, FlaskConical, Pill, Hospital, Accessibility, Activity, CheckCircle, ArrowRight, Bot } from 'lucide-react';
+import { ShieldCheck, Users, Zap, Wallet, Network, Video, FlaskConical, Pill, Hospital, Accessibility, Activity, CheckCircle, ArrowRight, Bot, UserPlus, Calendar, FileText, HeartPulse } from 'lucide-react';
 import Link from 'next/link';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
