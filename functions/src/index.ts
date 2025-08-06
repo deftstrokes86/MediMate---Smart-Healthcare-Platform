@@ -23,32 +23,31 @@ const db = admin.firestore();
 export const onUserCreate = functions.auth.user().onCreate(async (user) => {
   functions.logger.info(`New user created: ${user.uid}`, {structuredData: true});
   
-  // Default role is 'patient'. In a real app, you would get this from a temporary
-  // doc written by the client during sign-up.
-  const role = "patient"; 
+  // To assign a role, you would typically read it from a temporary document
+  // in Firestore that the client writes during the signup process.
+  // This example defaults to 'patient', but in a real-world scenario,
+  // you would fetch the role determined by the client-side logic.
+  
+  const userDocRef = db.collection("users").doc(user.uid);
   
   try {
-    // Set custom claim for Role-Based Access Control (RBAC)
-    await admin.auth().setCustomUserClaims(user.uid, { role: role });
-    functions.logger.info(`Custom claim set for user: ${user.uid}`, { role: role });
-
-    // The client-side code is handling the creation of user and profile documents.
-    // If you move that logic here, you would add it below.
-    // For example:
-    //
-    // const userDocRef = db.collection("users").doc(user.uid);
-    // await userDocRef.set({
-    //   email: user.email,
-    //   displayName: user.displayName,
-    //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    //   roles: { [role]: true }
-    // });
-    //
-    // const profileDocRef = db.collection("profiles").doc(user.uid);
-    // await profileDocRef.set({
-    //    patientData: { /* initial data */ }
-    // });
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) {
+        functions.logger.warn(`User document not found for uid: ${user.uid}`);
+        return null;
+    }
     
+    const roles = userDoc.data()?.roles;
+    const role = Object.keys(roles).find(r => roles[r] === true);
+
+    if (role) {
+      // Set custom claim for Role-Based Access Control (RBAC)
+      await admin.auth().setCustomUserClaims(user.uid, { role: role });
+      functions.logger.info(`Custom claim set for user: ${user.uid}`, { role: role });
+    } else {
+       functions.logger.warn(`No role found for user: ${user.uid}`);
+    }
+
     return null;
   } catch (error) {
     functions.logger.error("Error setting custom claim or creating user docs:", error);

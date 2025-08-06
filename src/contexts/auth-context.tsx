@@ -15,7 +15,7 @@ import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
-type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'admin' | 'hospital';
+type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin';
 
 interface AuthUser extends User {
     role?: Role;
