@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 
 import {
   Form,
@@ -146,10 +147,12 @@ export default function SymptomChecker() {
                 )}
               </div>
               {ailments.length > 0 && (
-                <Button variant="outline" className="mt-4 self-center bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Map className="mr-2 h-4 w-4" />
-                  Find a Doctor Nearby
-                </Button>
+                <Link href="/doctors" className="mt-4 self-center">
+                    <Button variant="outline" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                      <Map className="mr-2 h-4 w-4" />
+                      Find a Doctor Nearby
+                    </Button>
+                </Link>
               )}
             </CardFooter>
           </motion.div>
