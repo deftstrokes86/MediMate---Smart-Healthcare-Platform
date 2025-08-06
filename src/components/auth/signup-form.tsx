@@ -20,21 +20,24 @@ const roles = [
   { id: 'doctor', label: 'Doctor' },
   { id: 'pharmacist', label: 'Pharmacist' },
   { id: 'lab_technician', label: 'Lab Technician' },
+  { id: 'hospital', label: 'Hospital' },
 ];
 
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters long.");
 
 const formSchema = z.object({
-  role: z.enum(['patient', 'doctor', 'pharmacist', 'lab_technician']),
+  role: z.enum(['patient', 'doctor', 'pharmacist', 'lab_technician', 'hospital']),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: passwordSchema,
   confirmPassword: passwordSchema,
-  displayName: z.string().min(2, "Please enter your full name."),
+  displayName: z.string().min(2, "Please enter your full name or hospital name."),
   // Role-specific fields
   licenseNumber: z.string().optional(),
   specialization: z.string().optional(),
   pharmacyRegistration: z.string().optional(),
   labAffiliation: z.string().optional(),
+  hospitalRegistrationNumber: z.string().optional(),
+  address: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
@@ -47,6 +50,9 @@ const formSchema = z.object({
 }).refine(data => data.role !== 'lab_technician' || data.labAffiliation, {
     message: "Lab affiliation is required for lab technicians.",
     path: ["labAffiliation"],
+}).refine(data => data.role !== 'hospital' || (data.hospitalRegistrationNumber && data.address), {
+    message: "Hospital registration number and address are required for hospitals.",
+    path: ["hospitalRegistrationNumber"],
 });
 
 type SignupFormValues = z.infer<typeof formSchema>;
@@ -79,6 +85,8 @@ export default function SignupForm() {
           specialization: values.specialization,
           pharmacyRegistration: values.pharmacyRegistration,
           labAffiliation: values.labAffiliation,
+          hospitalRegistrationNumber: values.hospitalRegistrationNumber,
+          address: values.address,
       });
       toast({
         title: "Registration Successful",
@@ -109,6 +117,9 @@ export default function SignupForm() {
     }
     if (currentRole === 'lab_technician' && step === 2) {
         fieldsToValidate.push('labAffiliation');
+    }
+    if (currentRole === 'hospital' && step === 2) {
+        fieldsToValidate.push('hospitalRegistrationNumber', 'address');
     }
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -143,7 +154,7 @@ export default function SignupForm() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="grid grid-cols-2 gap-4"
+                          className="grid grid-cols-2 lg:grid-cols-3 gap-4"
                         >
                           {roles.map(role => (
                             <FormItem key={role.id} className="flex items-center space-x-3 space-y-0">
@@ -174,8 +185,8 @@ export default function SignupForm() {
                       name="displayName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl><Input placeholder="Jane Doe" {...field} /></FormControl>
+                          <FormLabel>{currentRole === 'hospital' ? 'Hospital Name' : 'Full Name'}</FormLabel>
+                          <FormControl><Input placeholder={currentRole === 'hospital' ? 'General Hospital' : 'Jane Doe'} {...field} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -242,6 +253,32 @@ export default function SignupForm() {
                                 </FormItem>
                             )}
                         />
+                    )}
+                    {currentRole === 'hospital' && (
+                        <>
+                            <FormField
+                                control={form.control}
+                                name="hospitalRegistrationNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Hospital Registration Number</FormLabel>
+                                    <FormControl><Input placeholder="HSP-REG-12345" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Address</FormLabel>
+                                    <FormControl><Input placeholder="123 Health St, Medical City" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </>
                     )}
                 </div>
             )}

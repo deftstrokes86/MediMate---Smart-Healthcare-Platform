@@ -15,7 +15,7 @@ import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
-type Role = 'patient' | 'doctor' | 'pharmacist' | 'lab_technician' | 'admin';
+type Role = 'patient' | 'doctor' | 'pharmacist' | 'lab_technician' | 'admin' | 'hospital';
 
 interface AuthUser extends User {
     role?: Role;
@@ -92,6 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 break;
             case 'lab_technician':
                 profileData = { labTechnicianData: { labAffiliation: additionalData.labAffiliation }};
+                break;
+            case 'hospital':
+                profileData = { hospitalData: { registrationNumber: additionalData.hospitalRegistrationNumber, address: additionalData.address, isVerified: false }};
                 break;
         }
         await setDoc(profileDocRef, profileData);
