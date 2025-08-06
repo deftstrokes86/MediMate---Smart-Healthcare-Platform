@@ -13,11 +13,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { countries } from '@/lib/countries';
 
 const roles = [
   { id: 'patient', label: 'Patient' },
@@ -113,7 +113,7 @@ export default function SignupForm() {
       patientFullName: '',
       dob: '',
       gender: '',
-      nationality: '',
+      nationality: 'Nigeria',
       address: '',
       phone: '',
       whatsappNumber: '',
@@ -127,7 +127,7 @@ export default function SignupForm() {
       doctorFullName: '',
       doctorGender: '',
       doctorDob: '',
-      doctorNationality: '',
+      doctorNationality: 'Nigeria',
       doctorPhone: '',
       doctorAddress: '',
       medicalLicenseNumber: '',
@@ -248,8 +248,9 @@ export default function SignupForm() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="nigerian">Nigerian</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
+                                  {countries.map((country) => (
+                                    <SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -361,8 +362,9 @@ export default function SignupForm() {
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="nigerian">Nigerian</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
+                                {countries.map((country) => (
+                                    <SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>
+                                ))}
                             </SelectContent>
                             </Select>
                             <FormMessage />
@@ -436,12 +438,12 @@ export default function SignupForm() {
                               <FormControl>
                                 <div className="relative flex-grow">
                                   <RadioGroupItem value={role.id} id={role.id} className="sr-only peer" />
-                                  <Label
+                                  <label
                                     htmlFor={role.id}
                                     className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full"
                                   >
                                     {role.label}
-                                  </Label>
+                                  </label>
                                 </div>
                               </FormControl>
                             </FormItem>
