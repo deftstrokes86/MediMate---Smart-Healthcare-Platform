@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            setLoading(true); // Start loading when auth state changes
             setRoleVerified(false);
             if (user) {
                 try {
@@ -52,20 +53,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     
                     const isAdmin = role === 'admin' || role === 'super_admin';
                     const isDoctor = role === 'doctor';
-                    
-                    if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') {
+                    const isMedicalLab = role === 'medical_lab';
+
+                    // If on a public page, redirect to the correct dashboard after login
+                    if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/') {
                          if (isAdmin) {
                             router.push('/admin/dashboard');
                          } else if (isDoctor) {
                              router.push('/doctor/dashboard');
+                         } else if (isMedicalLab) {
+                            router.push('/lab/dashboard');
                          } else {
-                            router.push('/');
+                            // For patients or other roles, stay on homepage or redirect to their dashboard
+                            router.push('/'); 
                          }
                     } else if (isAdmin && !pathname.startsWith('/admin')) {
+                        // If an admin is not in the admin section, redirect them
                         router.push('/admin/dashboard');
                     } else if (isDoctor && !pathname.startsWith('/doctor')) {
+                        // If a doctor is not in the doctor section, redirect them
                         router.push('/doctor/dashboard');
-                    } else if (!isAdmin && !isDoctor && (pathname.startsWith('/admin') || pathname.startsWith('/doctor'))) {
+                    } else if (isMedicalLab && !pathname.startsWith('/lab')) {
+                        // If a lab user is not in the lab section, redirect them
+                        router.push('/lab/dashboard');
+                    }
+                    else if (!isAdmin && !isDoctor && !isMedicalLab && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab'))) {
+                       // If a non-privileged user tries to access a protected area, send them home
                         router.push('/');
                     }
 
@@ -79,11 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(null);
                 setRoleVerified(true); // No user, so verification is "complete"
             }
-            setLoading(false);
+             setLoading(false); // Stop loading after all checks are done
         });
 
         return () => unsubscribe();
-    }, [router, pathname]);
+    }, [pathname, router]);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -110,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
-            isVerified: role === 'patient' && additionalData.patientType === 'adult',
+            isVerified: false,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -160,7 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
                 break;
             case 'doctor':
-                 profileData.isVerified = false;
                 profileData.doctorData = { 
                     fullName: additionalData.doctorFullName,
                     gender: additionalData.doctorGender,
@@ -174,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'pharmacist':
-                 profileData.isVerified = false;
                 profileData.pharmacistData = {
                     pharmacyName: additionalData.pharmacyName,
                     address: additionalData.pharmacyAddress,
@@ -184,7 +195,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'medical_lab':
-                 profileData.isVerified = false;
                 profileData.medicalLabData = {
                     labName: additionalData.labName,
                     address: additionalData.labAddress,
@@ -194,7 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'hospital':
-                 profileData.isVerified = false;
                 profileData.hospitalData = {
                     hospitalName: additionalData.hospitalName,
                     address: additionalData.hospitalAddress,
