@@ -86,23 +86,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         switch (role) {
             case 'patient':
-                profileData.patientData = {
-                    fullName: additionalData.patientFullName,
-                    dob: additionalData.dob,
-                    gender: additionalData.gender,
-                    nationality: additionalData.nationality,
-                    address: additionalData.address,
-                    phone: additionalData.phone,
-                    whatsappNumber: additionalData.whatsappNumber,
-                    emergencyContact: {
-                        name: additionalData.emergencyContactName,
-                        phone: additionalData.emergencyContactPhone,
-                        relationship: additionalData.emergencyContactRelationship,
-                    },
-                    bloodType: additionalData.bloodType,
-                    allergies: additionalData.allergies,
-                    chronicConditions: additionalData.chronicConditions,
-                };
+                if (additionalData.patientType === 'minor') {
+                    profileData.patientData = {
+                        isMinor: true,
+                        childProfile: {
+                            fullName: additionalData.childFullName,
+                            dob: additionalData.childDob,
+                            gender: additionalData.childGender,
+                            ninOrBirthCert: additionalData.childNinOrBirthCert,
+                            medicalHistory: additionalData.childMedicalHistory,
+                            location: additionalData.childLocation,
+                        },
+                        guardianProfile: {
+                            fullName: additionalData.guardianFullName,
+                            relationship: additionalData.guardianRelationship,
+                            phone: additionalData.guardianPhone,
+                            email: additionalData.email, // The login email is the guardian's
+                            idNumber: additionalData.guardianId,
+                            proofOfGuardianship: additionalData.guardianProof,
+                        }
+                    };
+                } else {
+                    profileData.patientData = {
+                        isMinor: false,
+                        fullName: additionalData.patientFullName,
+                        dob: additionalData.dob,
+                        gender: additionalData.gender,
+                        nationality: additionalData.nationality,
+                        address: additionalData.address,
+                        phone: additionalData.phone,
+                        whatsappNumber: additionalData.whatsappNumber,
+                        emergencyContact: {
+                            name: additionalData.emergencyContactName,
+                            phone: additionalData.emergencyContactPhone,
+                            relationship: additionalData.emergencyContactRelationship,
+                        },
+                        bloodType: additionalData.bloodType,
+                        allergies: additionalData.allergies,
+                        chronicConditions: additionalData.chronicConditions,
+                    };
+                }
                 break;
             case 'doctor':
                 profileData.doctorData = { 
@@ -186,5 +209,3 @@ export function useAuth() {
     }
     return context;
 }
-
-    

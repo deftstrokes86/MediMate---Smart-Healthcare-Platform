@@ -11,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, User, Baby } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { countries } from '@/lib/countries';
+import { Label } from '../ui/label';
 
 const roles = [
   { id: 'patient', label: 'Patient' },
@@ -31,11 +32,12 @@ const passwordSchema = z.string().min(8, "Password must be at least 8 characters
 
 const formSchema = z.object({
   role: z.enum(['patient', 'doctor', 'pharmacist', 'medical_lab', 'hospital']),
+  patientType: z.enum(['adult', 'minor']).optional(),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: passwordSchema,
   confirmPassword: passwordSchema,
   
-  // Patient
+  // Patient (Adult)
   patientFullName: z.string().optional(),
   dob: z.string().optional(),
   gender: z.string().optional(),
@@ -50,6 +52,24 @@ const formSchema = z.object({
   allergies: z.string().optional(),
   chronicConditions: z.string().optional(),
   
+  // Patient (Minor)
+  childFullName: z.string().optional(),
+  childDob: z.string().optional(),
+  childGender: z.string().optional(),
+  childNinOrBirthCert: z.string().optional(),
+  childMedicalHistory: z.string().optional(),
+  childLocation: z.string().optional(),
+
+  // Guardian
+  guardianFullName: z.string().optional(),
+  guardianRelationship: z.string().optional(),
+  guardianPhone: z.string().optional(),
+  guardianEmail: z.string().optional(),
+  guardianId: z.string().optional(),
+  guardianProof: z.string().optional(),
+  acceptGuardianConsent: z.boolean().optional(),
+
+
   // Doctor
   doctorFullName: z.string().optional(),
   doctorGender: z.string().optional(),
@@ -82,7 +102,7 @@ const formSchema = z.object({
   medicalDirector: z.string().optional(),
   hospitalType: z.string().optional(),
 
-  // Consent
+  // General Consent
   acceptTerms: z.boolean().refine(val => val === true, {
     message: "You must accept the privacy policy to continue."
   }),
@@ -105,11 +125,12 @@ export default function SignupForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       role: 'patient',
+      patientType: undefined,
       email: '',
       password: '',
       confirmPassword: '',
       acceptTerms: false,
-      // Patient
+      // Patient (Adult)
       patientFullName: '',
       dob: '',
       gender: '',
@@ -123,6 +144,20 @@ export default function SignupForm() {
       bloodType: '',
       allergies: '',
       chronicConditions: '',
+       // Patient (Minor) & Guardian
+      childFullName: '',
+      childDob: '',
+      childGender: '',
+      childNinOrBirthCert: '',
+      childMedicalHistory: '',
+      childLocation: '',
+      guardianFullName: '',
+      guardianRelationship: '',
+      guardianPhone: '',
+      guardianEmail: '',
+      guardianId: '',
+      guardianProof: '',
+      acceptGuardianConsent: false,
       // Doctor
       doctorFullName: '',
       doctorGender: '',
@@ -155,11 +190,23 @@ export default function SignupForm() {
   });
   
   const currentRole = form.watch('role');
+  const patientType = form.watch('patientType');
 
   async function onSubmit(values: SignupFormValues) {
+    if (values.role === 'patient' && values.patientType === 'minor') {
+        if (!values.acceptGuardianConsent) {
+            toast({
+                variant: "destructive",
+                title: "Consent Required",
+                description: "You must accept the parental consent policy to continue.",
+            });
+            return;
+        }
+    }
+
     setIsLoading(true);
     try {
-      const displayName = values.patientFullName || values.doctorFullName || values.pharmacyName || values.labName || values.hospitalName || '';
+      const displayName = values.guardianFullName || values.patientFullName || values.doctorFullName || values.pharmacyName || values.labName || values.hospitalName || '';
       await signupWithEmail(values.email, values.password, displayName, values.role, values);
       toast({
         title: "Registration Successful",
@@ -179,10 +226,18 @@ export default function SignupForm() {
 
   const handleNextStep = async () => {
     let fieldsToValidate: (keyof SignupFormValues)[] = ['role'];
+    if(step === 1 && currentRole === 'patient') {
+        const isValid = await form.trigger(fieldsToValidate);
+        if(isValid) setStep(1.5); // Move to patient type selection
+        return;
+    }
     if (step === 2) {
       fieldsToValidate.push('email');
       switch(currentRole) {
-        case 'patient': fieldsToValidate.push('patientFullName'); break;
+        case 'patient': 
+            if (patientType === 'adult') fieldsToValidate.push('patientFullName');
+            if (patientType === 'minor') fieldsToValidate.push('guardianEmail', 'guardianFullName', 'childFullName');
+            break;
         case 'doctor': fieldsToValidate.push('doctorFullName'); break;
         case 'pharmacist': fieldsToValidate.push('pharmacyName'); break;
         case 'medical_lab': fieldsToValidate.push('labName'); break;
@@ -190,15 +245,26 @@ export default function SignupForm() {
       }
     } else if (step === 3) {
       fieldsToValidate = ['password', 'confirmPassword', 'acceptTerms'];
+       if (currentRole === 'patient' && patientType === 'minor') {
+        fieldsToValidate.push('acceptGuardianConsent');
+      }
     }
 
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
-      setStep(prev => prev + 1);
+      setStep(prev => Math.floor(prev) + 1);
     }
   };
   
   const handlePrevStep = () => {
+    if (step === 1.5) {
+        setStep(1);
+        return;
+    }
+    if (step === 2 && currentRole === 'patient'){
+        setStep(1.5);
+        return;
+    }
     setStep(prev => prev - 1);
   };
 
@@ -210,54 +276,9 @@ export default function SignupForm() {
                       <FormField control={form.control} name="doctorFullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Dr. Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       
-                      <FormField
-                          control={form.control}
-                          name="doctorGender"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Gender</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select gender" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="male">Male</SelectItem>
-                                  <SelectItem value="female">Female</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
+                      <FormField control={form.control} name="doctorGender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="doctorDob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-
-                      <FormField
-                          control={form.control}
-                          name="doctorNationality"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nationality</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select nationality" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {countries.map((country) => (
-                                    <SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
+                      <FormField control={form.control} name="doctorNationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select nationality" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="doctorPhone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="doctorAddress" render={({ field }) => (<FormItem><FormLabel>Current Address</FormLabel><FormControl><Input placeholder="123 Health Way, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="medicalLicenseNumber" render={({ field }) => (<FormItem><FormLabel>Medical License (MDCN)</FormLabel><FormControl><Input placeholder="MDCN/12345/2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -295,117 +316,56 @@ export default function SignupForm() {
                       <FormField control={form.control} name="hospitalAddress" render={({ field }) => (<FormItem><FormLabel>Hospital Address</FormLabel><FormControl><Input placeholder="789 Care Crescent, Port Harcourt" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="hospitalRegistrationNumber" render={({ field }) => (<FormItem><FormLabel>Operating License Number (FMoH)</FormLabel><FormControl><Input placeholder="FMoH/2024/123" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="medicalDirector" render={({ field }) => (<FormItem><FormLabel>Medical Director Name</FormLabel><FormControl><Input placeholder="Dr. Fatima Bello" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                       <FormField
-                          control={form.control}
-                          name="hospitalType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hospital Type</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select hospital type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="private">Private</SelectItem>
-                                  <SelectItem value="public">Public</SelectItem>
-                                  <SelectItem value="specialist">Specialist</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                       <FormField control={form.control} name="hospitalType" render={({ field }) => (<FormItem><FormLabel>Hospital Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select hospital type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="private">Private</SelectItem><SelectItem value="public">Public</SelectItem><SelectItem value="specialist">Specialist</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   </div>
               )
           default: // Patient
-              return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            if (patientType === 'minor') {
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h4 className="text-md font-semibold font-headline border-b pb-2 mb-4">Child's Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="childFullName" render={({ field }) => (<FormItem><FormLabel>Child's Full Name</FormLabel><FormControl><Input placeholder="Junior Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="childDob" render={({ field }) => (<FormItem><FormLabel>Child's Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="childGender" render={({ field }) => (<FormItem><FormLabel>Child's Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="childLocation" render={({ field }) => (<FormItem><FormLabel>Location (City/State)</FormLabel><FormControl><Input placeholder="Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="childNinOrBirthCert" render={({ field }) => (<FormItem><FormLabel>NIN or Birth Certificate No. (Optional)</FormLabel><FormControl><Input placeholder="1234567890" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="childMedicalHistory" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Medical History (Allergies, conditions, etc.)</FormLabel><FormControl><Textarea placeholder="e.g. Pollen allergy, Asthma" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                        </div>
+                        <div>
+                            <h4 className="text-md font-semibold font-headline border-b pb-2 mb-4">Parent/Guardian's Information</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="guardianFullName" render={({ field }) => (<FormItem><FormLabel>Guardian's Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="guardianRelationship" render={({ field }) => (<FormItem><FormLabel>Relationship to Minor</FormLabel><FormControl><Input placeholder="Parent" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Your Email (for Login)</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="guardianPhone" render={({ field }) => (<FormItem><FormLabel>Guardian's Phone</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="guardianId" render={({ field }) => (<FormItem><FormLabel>Guardian's Valid ID (NIN, etc.)</FormLabel><FormControl><Input placeholder="ID Number" {...field} /></FormControl><FormDescription>For verification purposes.</FormDescription><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="guardianProof" render={({ field }) => (<FormItem><FormLabel>Proof of Guardianship (Optional)</FormLabel><FormControl><Input placeholder="e.g., Court Order" {...field} /></FormControl><FormDescription>Required if not biological parent.</FormDescription><FormMessage /></FormItem>)} />
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            return ( // Adult patient form
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="patientFullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="whatsappNumber" render={({ field }) => (<FormItem><FormLabel>WhatsApp Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="whatsappNumber" render={({ field }) => (<FormItem><FormLabel>WhatsApp Number (Optional)</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField
-                        control={form.control}
-                        name="gender"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Gender</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select gender" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="male">Male</SelectItem>
-                                <SelectItem value="female">Female</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="nationality"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nationality</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select nationality" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {countries.map((country) => (
-                                    <SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="nationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select nationality" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country} value={country.toLowerCase()}>{country}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactName" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactPhone" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Phone</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Relationship</FormLabel><FormControl><Input placeholder="Sibling" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField
-                        control={form.control}
-                        name="bloodType"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Blood Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select blood type" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="A+">A+</SelectItem>
-                                <SelectItem value="A-">A-</SelectItem>
-                                <SelectItem value="B+">B+</SelectItem>
-                                <SelectItem value="B-">B-</SelectItem>
-                                <SelectItem value="AB+">AB+</SelectItem>
-                                <SelectItem value="AB-">AB-</SelectItem>
-                                <SelectItem value="O+">O+</SelectItem>
-                                <SelectItem value="O-">O-</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField control={form.control} name="allergies" render={({ field }) => (<FormItem><FormLabel>Allergies</FormLabel><FormControl><Textarea placeholder="e.g. Penicillin, Peanuts" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="chronicConditions" render={({ field }) => (<FormItem><FormLabel>Chronic Conditions</FormLabel><FormControl><Textarea placeholder="e.g. Asthma, Hypertension" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  </div>
-              )
+                    <FormField control={form.control} name="bloodType" render={({ field }) => (<FormItem><FormLabel>Blood Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select blood type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="A+">A+</SelectItem><SelectItem value="A-">A-</SelectItem><SelectItem value="B+">B+</SelectItem><SelectItem value="B-">B-</SelectItem><SelectItem value="AB+">AB+</SelectItem><SelectItem value="AB-">AB-</SelectItem><SelectItem value="O+">O+</SelectItem><SelectItem value="O-">O-</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="allergies" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Allergies</FormLabel><FormControl><Textarea placeholder="e.g. Penicillin, Peanuts" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="chronicConditions" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Chronic Conditions</FormLabel><FormControl><Textarea placeholder="e.g. Asthma, Hypertension" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+            )
       }
   }
 
@@ -436,14 +396,14 @@ export default function SignupForm() {
                           {roles.map(role => (
                             <FormItem key={role.id} className="flex items-center space-x-3 space-y-0">
                               <FormControl>
-                                <div className="relative flex-grow">
+                                <div>
                                   <RadioGroupItem value={role.id} id={role.id} className="sr-only peer" />
-                                  <label
+                                  <Label
                                     htmlFor={role.id}
                                     className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full"
                                   >
                                     {role.label}
-                                  </label>
+                                  </Label>
                                 </div>
                               </FormControl>
                             </FormItem>
@@ -453,6 +413,54 @@ export default function SignupForm() {
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+             )}
+             {step === 1.5 && (
+                <FormField
+                    control={form.control}
+                    name="patientType"
+                    render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel className="text-lg font-semibold font-headline">Who is this account for?</FormLabel>
+                        <FormDescription>Please select the age group of the patient.</FormDescription>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setStep(2);
+                                }}
+                                defaultValue={field.value}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                >
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <div>
+                                            <RadioGroupItem value="adult" id="adult" className="sr-only peer" />
+                                            <Label htmlFor="adult" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full">
+                                                <User className="h-8 w-8 mb-2" />
+                                                <span className="font-bold">18 and Over</span>
+                                                <span className="text-sm text-muted-foreground">For yourself</span>
+                                            </Label>
+                                        </div>
+                                    </FormControl>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <div>
+                                            <RadioGroupItem value="minor" id="minor" className="sr-only peer" />
+                                            <Label htmlFor="minor" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full">
+                                                <Baby className="h-8 w-8 mb-2" />
+                                                <span className="font-bold">Under 18</span>
+                                                <span className="text-sm text-muted-foreground">For a child or dependent</span>
+                                            </Label>
+                                        </div>
+                                    </FormControl>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
                 />
              )}
             {step === 2 && (
@@ -516,6 +524,37 @@ export default function SignupForm() {
                         </FormItem>
                     )}
                     />
+
+                    {currentRole === 'patient' && patientType === 'minor' && (
+                         <FormField
+                            control={form.control}
+                            name="acceptGuardianConsent"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                                <FormControl>
+                                    <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel>
+                                    Accept Parental Consent Policy
+                                    </FormLabel>
+                                    <FormDescription>
+                                    By signing up, you agree to our{' '}
+                                    <Link href="/parental-consent" className="text-primary hover:underline" target="_blank">
+                                        Parental Consent Policy
+                                    </Link>
+                                    .
+                                    </FormDescription>
+                                    <FormMessage />
+                                </div>
+                                </FormItem>
+                            )}
+                            />
+                    )}
+
                     <FormField
                         control={form.control}
                         name="acceptTerms"
@@ -543,7 +582,6 @@ export default function SignupForm() {
                             </FormItem>
                         )}
                         />
-
                 </div>
              )}
             </motion.div>
@@ -551,7 +589,8 @@ export default function SignupForm() {
 
         <div className="flex gap-4 pt-4">
             {step > 1 && <Button type="button" variant="outline" onClick={handlePrevStep} className="w-full">Back</Button>}
-            {step < 3 && <Button type="button" onClick={handleNextStep} className="w-full">Next</Button>}
+            {step === 1 && <Button type="button" onClick={handleNextStep} className="w-full">Next</Button>}
+            {step === 2 && <Button type="button" onClick={handleNextStep} className="w-full">Next</Button>}
             {step === 3 && (
                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 animate-spin" />}
