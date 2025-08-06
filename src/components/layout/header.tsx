@@ -1,4 +1,7 @@
-import { Stethoscope, Bot, Menu, Search, Info, MessageSquare, ChevronDown } from 'lucide-react';
+
+"use client";
+
+import { Stethoscope, Bot, Menu, Search, Info, MessageSquare, ChevronDown, UserCircle, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,14 +15,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-  } from "@/components/ui/accordion"
-
+  } from "@/components/ui/accordion";
+import { useAuth } from '@/contexts/auth-context';
+  
 const navLinks = [
   { href: "/symptom-checker", label: "Symptom Checker", icon: <Bot className="h-4 w-4" /> },
   { href: "/find-a-doctor", label: "Find a Doctor", icon: <Search className="h-4 w-4" /> },
@@ -35,6 +40,8 @@ const aboutLinks = [
 ]
 
 export default function Header() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center">
@@ -73,10 +80,31 @@ export default function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost">Log In</Button>
-            <Button>Sign Up</Button>
-          </div>
+          {user ? (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2">
+                        <UserCircle className="h-5 w-5" />
+                        {user.displayName || user.email}
+                        <ChevronDown className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href="/dashboard">Dashboard</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-500">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log Out
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+             <div className="hidden md:flex items-center gap-2">
+                <Button variant="ghost" asChild><Link href="/login">Log In</Link></Button>
+                <Button asChild><Link href="/signup">Sign Up</Link></Button>
+             </div>
+          )}
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -121,8 +149,17 @@ export default function Header() {
                 </Accordion>
               </div>
               <div className="mt-auto flex flex-col gap-2 pt-6">
-                <Button variant="ghost">Log In</Button>
-                <Button>Sign Up</Button>
+                 {user ? (
+                    <>
+                        <Button variant="outline" asChild><Link href="/dashboard">Dashboard</Link></Button>
+                        <Button variant="destructive" onClick={logout}>Log Out</Button>
+                    </>
+                 ) : (
+                    <>
+                        <Button variant="ghost" asChild><Link href="/login">Log In</Link></Button>
+                        <Button asChild><Link href="/signup">Sign Up</Link></Button>
+                    </>
+                 )}
               </div>
             </SheetContent>
           </Sheet>

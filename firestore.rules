@@ -1,0 +1,33 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read and write their own user document.
+    match /users/{userId} {
+      allow read, update: if request.auth.uid == userId;
+      allow create: if request.auth.uid != null;
+    }
+
+    // Users can only read and write their own profile document.
+    match /profiles/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Example of role-based access for a protected collection.
+    // This is a placeholder and can be adapted for actual collections.
+    match /medical_records/{recordId} {
+      // Only users with a 'doctor' or 'admin' custom claim can read.
+      allow read: if request.auth.token.role == 'doctor' || request.auth.token.role == 'admin';
+      
+      // Only doctors can create/update records.
+      allow write: if request.auth.token.role == 'doctor';
+    }
+
+    // Fallback rule to deny all other access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

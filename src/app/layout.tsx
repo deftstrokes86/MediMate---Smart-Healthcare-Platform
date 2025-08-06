@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { PT_Sans } from "next/font/google";
 import "./globals.css";
@@ -5,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { AuthProvider } from "@/contexts/auth-context";
 
 const ptSans = PT_Sans({
   subsets: ["latin"],
@@ -38,12 +40,14 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative flex min-h-dvh flex-col bg-background">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
-        <Toaster />
+        <AuthProvider>
+            <div className="relative flex min-h-dvh flex-col bg-background">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
