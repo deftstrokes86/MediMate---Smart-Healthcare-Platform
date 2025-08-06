@@ -28,12 +28,12 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   React.useEffect(() => {
-    if (!loading && (!user || user.role !== "admin")) {
+    if (!loading && (!user || (user.role !== "admin" && user.role !== "super_admin"))) {
       router.replace("/login");
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role !== "admin") {
+  if (loading || !user || (user.role !== "admin" && user.role !== "super_admin")) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -42,7 +42,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: "/admin/dashboard", label: "Users", icon: <Users /> },
+    { href: "/admin/dashboard", label: "Dashboard", icon: <Users /> },
     { href: "/admin/verification", label: "Verification", icon: <ShieldCheck /> },
     { href: "/admin/analytics", label: "Analytics", icon: <BarChart /> },
     { href: "/admin/settings", label: "Settings", icon: <Settings /> },
@@ -61,7 +61,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={pathname === item.href}>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
                         <Link href={item.href}>
                             {item.icon}
                             <span>{item.label}</span>

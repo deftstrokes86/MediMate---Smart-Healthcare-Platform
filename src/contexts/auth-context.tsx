@@ -12,10 +12,10 @@ import {
     updateProfile
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
-type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin';
+type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
 
 interface AuthUser extends User {
     role?: Role;
@@ -40,15 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    const roles = userDoc.data().roles;
-                    const role = Object.keys(roles).find(r => roles[r] === true) as Role;
-                    setUser({ ...user, role });
-                } else {
-                    setUser(user);
-                }
+                const idTokenResult = await user.getIdTokenResult();
+                const role = idTokenResult.claims.role as Role || undefined;
+                setUser({ ...user, role });
             } else {
                 setUser(null);
             }
@@ -63,22 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const firebaseUser = userCredential.user;
         
         await updateProfile(firebaseUser, { displayName });
-
+        
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        await setDoc(userDocRef, {
+        const userDocPayload: { [key: string]: any } = {
             email: firebaseUser.email,
             displayName: displayName,
             photoURL: firebaseUser.photoURL,
             provider: firebaseUser.providerId,
-            createdAt: new Date(),
+            createdAt: serverTimestamp(),
             roles: { [role]: true }
-        });
+        };
+         if (role === 'super_admin' && additionalData.token) {
+            const inviteDoc = await getDoc(doc(db, 'adminInvites', additionalData.token));
+            if (inviteDoc.exists()) {
+                 userDocPayload.createdBy = inviteDoc.data().invitedBy;
+            }
+        }
+        await setDoc(userDocRef, userDocPayload);
 
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
-             isVerified: role === 'patient' && additionalData.patientType === 'adult',
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            isVerified: role === 'patient' && additionalData.patientType === 'adult',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
         };
 
         switch (role) {
@@ -164,27 +165,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     hospitalType: additionalData.hospitalType,
                 };
                 break;
+             case 'super_admin':
+                profileData = {
+                    ...profileData,
+                    isVerified: true, // Super admins are auto-verified
+                    phone: additionalData.phone,
+                };
+                break;
         }
         await setDoc(profileDocRef, profileData, { merge: true });
         
-        router.push('/'); 
+        if (role !== 'super_admin') {
+            router.push('/');
+        }
         return userCredential;
     };
 
     const loginWithEmail = async (email: string, password: string) => {
         const result = await signInWithEmailAndPassword(auth, email, password);
-        const userDocRef = doc(db, 'users', result.user.uid);
-        const userDoc = await getDoc(userDocRef);
-         if (userDoc.exists()) {
-            const roles = userDoc.data().roles;
-            const role = Object.keys(roles).find(r => roles[r] === true) as Role;
-            if (role === 'admin') {
-                router.push('/admin/dashboard');
-            } else {
-                 router.push('/');
-            }
+        const idTokenResult = await result.user.getIdTokenResult();
+        const role = idTokenResult.claims.role;
+
+        if (role === 'admin' || role === 'super_admin') {
+            router.push('/admin/dashboard');
         } else {
-             router.push('/');
+            router.push('/');
         }
         return result;
     };
@@ -197,7 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sendPasswordReset = async (email: string) => {
         await sendPasswordResetEmail(auth, email);
     };
-
 
     const value = {
         user,
