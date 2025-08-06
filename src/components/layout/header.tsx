@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from '../ui/input';
@@ -55,6 +56,7 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
+              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
               <Link href="/" className="mr-6 flex items-center space-x-2 mb-6">
                 <Stethoscope className="h-6 w-6 text-primary" />
                 <span className="font-bold font-headline text-lg">MediMate</span>
