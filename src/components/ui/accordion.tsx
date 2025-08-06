@@ -44,9 +44,17 @@ const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const dangerouslySetInnerHTML = props.dangerouslySetInnerHTML;
-  // @ts-ignore
-  delete props.dangerouslySetInnerHTML;
+  if (props.dangerouslySetInnerHTML) {
+    return (
+      <AccordionPrimitive.Content
+        ref={ref}
+        className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+        {...props}
+      >
+        <div className={cn("pb-4 pt-0", className)} dangerouslySetInnerHTML={props.dangerouslySetInnerHTML} />
+      </AccordionPrimitive.Content>
+    );
+  }
 
   return (
     <AccordionPrimitive.Content
@@ -54,12 +62,7 @@ const AccordionContent = React.forwardRef<
       className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
       {...props}
     >
-      <div
-        className={cn("pb-4 pt-0", className)}
-        dangerouslySetInnerHTML={dangerouslySetInnerHTML as { __html: string } | undefined}
-      >
-        {dangerouslySetInnerHTML ? null : children}
-      </div>
+      <div className={cn("pb-4 pt-0", className)}>{children}</div>
     </AccordionPrimitive.Content>
   );
 });
