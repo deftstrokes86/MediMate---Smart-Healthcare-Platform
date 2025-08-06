@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const isAdmin = role === 'admin' || role === 'super_admin';
                     const isDoctor = role === 'doctor';
                     const isMedicalLab = role === 'medical_lab';
+                    const isPharmacist = role === 'pharmacist';
 
                     // If on a public page, redirect to the correct dashboard after login
                     if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/') {
@@ -63,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                              router.push('/doctor/dashboard');
                          } else if (isMedicalLab) {
                             router.push('/lab/dashboard');
+                         } else if (isPharmacist) {
+                            router.push('/pharmacy/dashboard');
                          } else {
                             // For patients or other roles, stay on homepage or redirect to their dashboard
                             router.push('/'); 
@@ -76,8 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else if (isMedicalLab && !pathname.startsWith('/lab')) {
                         // If a lab user is not in the lab section, redirect them
                         router.push('/lab/dashboard');
+                    } else if (isPharmacist && !pathname.startsWith('/pharmacy')) {
+                        // If a pharmacist is not in the pharmacy section, redirect them
+                        router.push('/pharmacy/dashboard');
                     }
-                    else if (!isAdmin && !isDoctor && !isMedicalLab && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab'))) {
+                    else if (!isAdmin && !isDoctor && !isMedicalLab && !isPharmacist && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab') || pathname.startsWith('/pharmacy'))) {
                        // If a non-privileged user tries to access a protected area, send them home
                         router.push('/');
                     }
