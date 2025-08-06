@@ -63,19 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        let finalDisplayName = displayName;
-        if (role === 'hospital') finalDisplayName = additionalData.hospitalName;
-        if (role === 'pharmacist') finalDisplayName = additionalData.pharmacyName;
-        if (role === 'medical_lab') finalDisplayName = additionalData.labName;
-
-        // Update Firebase Auth profile
-        await updateProfile(firebaseUser, { displayName: finalDisplayName });
+        await updateProfile(firebaseUser, { displayName });
 
         // Create user document in 'users' collection
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         await setDoc(userDocRef, {
             email: firebaseUser.email,
-            displayName: finalDisplayName,
+            displayName: displayName,
             photoURL: firebaseUser.photoURL,
             provider: firebaseUser.providerId,
             createdAt: new Date(),
@@ -93,24 +87,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         switch (role) {
             case 'patient':
                 profileData.patientData = {
-                    fullName: displayName,
+                    fullName: additionalData.patientFullName,
                     dob: additionalData.dob,
                     gender: additionalData.gender,
                     nationality: additionalData.nationality,
                     address: additionalData.address,
                     phone: additionalData.phone,
+                    whatsappNumber: additionalData.whatsappNumber,
                     emergencyContact: {
                         name: additionalData.emergencyContactName,
                         phone: additionalData.emergencyContactPhone,
+                        relationship: additionalData.emergencyContactRelationship,
                     },
+                    bloodType: additionalData.bloodType,
+                    allergies: additionalData.allergies,
+                    chronicConditions: additionalData.chronicConditions,
                 };
                 break;
             case 'doctor':
                 profileData.doctorData = { 
-                    fullName: displayName,
-                    gender: additionalData.gender,
-                    dob: additionalData.dob,
-                    nationality: additionalData.nationality,
+                    fullName: additionalData.doctorFullName,
+                    gender: additionalData.doctorGender,
+                    dob: additionalData.doctorDob,
+                    nationality: additionalData.doctorNationality,
+                    phone: additionalData.doctorPhone,
+                    address: additionalData.doctorAddress,
                     medicalLicenseNumber: additionalData.medicalLicenseNumber,
                     specialization: additionalData.specialization, 
                     yearsOfExperience: additionalData.yearsOfExperience,
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     address: additionalData.pharmacyAddress,
                     pcnLicense: additionalData.pcnLicense,
                     pharmacistInCharge: additionalData.pharmacistInCharge,
+                    pharmacistInChargeLicense: additionalData.pharmacistInChargeLicense,
                 };
                 break;
             case 'medical_lab':
@@ -130,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     address: additionalData.labAddress,
                     cacRegistration: additionalData.cacCertificate,
                     mlscnLicense: additionalData.mlscnLicense,
+                    labManagerName: additionalData.labManagerName,
                 };
                 break;
             case 'hospital':
@@ -138,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     address: additionalData.hospitalAddress,
                     operatingLicense: additionalData.hospitalRegistrationNumber,
                     medicalDirector: additionalData.medicalDirector,
+                    hospitalType: additionalData.hospitalType,
                 };
                 break;
         }
@@ -182,3 +186,5 @@ export function useAuth() {
     }
     return context;
 }
+
+    

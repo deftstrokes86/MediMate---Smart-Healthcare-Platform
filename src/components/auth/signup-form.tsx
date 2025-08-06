@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
+import { Textarea } from '../ui/textarea';
 
 const roles = [
   { id: 'patient', label: 'Patient' },
@@ -33,40 +34,52 @@ const formSchema = z.object({
   password: passwordSchema,
   confirmPassword: passwordSchema,
   
-  // Universal
-  displayName: z.string().min(2, "Please enter your full name or facility name.").optional(),
-  
   // Patient
+  patientFullName: z.string().optional(),
   dob: z.string().optional(),
   gender: z.string().optional(),
   nationality: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
+  whatsappNumber: z.string().optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+  bloodType: z.string().optional(),
+  allergies: z.string().optional(),
+  chronicConditions: z.string().optional(),
   
   // Doctor
+  doctorFullName: z.string().optional(),
+  doctorGender: z.string().optional(),
+  doctorDob: z.string().optional(),
+  doctorNationality: z.string().optional(),
+  doctorPhone: z.string().optional(),
+  doctorAddress: z.string().optional(),
   medicalLicenseNumber: z.string().optional(),
   specialization: z.string().optional(),
   yearsOfExperience: z.string().optional(),
-  
+
   // Pharmacist
   pharmacyName: z.string().optional(),
   pharmacyAddress: z.string().optional(),
-  pcnLicense: z.string().optional(), // Pharmacists Council of Nigeria
+  pcnLicense: z.string().optional(), 
   pharmacistInCharge: z.string().optional(),
+  pharmacistInChargeLicense: z.string().optional(),
 
   // Medical Lab
   labName: z.string().optional(),
   labAddress: z.string().optional(),
-  cacCertificate: z.string().optional(), // Corporate Affairs Commission
-  mlscnLicense: z.string().optional(), // Medical Laboratory Science Council of Nigeria
+  cacCertificate: z.string().optional(), 
+  mlscnLicense: z.string().optional(), 
+  labManagerName: z.string().optional(),
 
   // Hospital
   hospitalName: z.string().optional(),
   hospitalAddress: z.string().optional(),
   hospitalRegistrationNumber: z.string().optional(),
   medicalDirector: z.string().optional(),
+  hospitalType: z.string().optional(),
 
   // Consent
   acceptTerms: z.boolean().refine(val => val === true, {
@@ -94,30 +107,49 @@ export default function SignupForm() {
       email: '',
       password: '',
       confirmPassword: '',
-      displayName: '',
       acceptTerms: false,
+      // Patient
+      patientFullName: '',
       dob: '',
       gender: '',
       nationality: '',
       address: '',
       phone: '',
+      whatsappNumber: '',
       emergencyContactName: '',
       emergencyContactPhone: '',
+      emergencyContactRelationship: '',
+      bloodType: '',
+      allergies: '',
+      chronicConditions: '',
+      // Doctor
+      doctorFullName: '',
+      doctorGender: '',
+      doctorDob: '',
+      doctorNationality: '',
+      doctorPhone: '',
+      doctorAddress: '',
       medicalLicenseNumber: '',
       specialization: '',
       yearsOfExperience: '',
+      // Pharmacist
       pharmacyName: '',
       pharmacyAddress: '',
       pcnLicense: '',
       pharmacistInCharge: '',
+      pharmacistInChargeLicense: '',
+      // Medical Lab
       labName: '',
       labAddress: '',
       cacCertificate: '',
       mlscnLicense: '',
+      labManagerName: '',
+      // Hospital
       hospitalName: '',
       hospitalAddress: '',
       hospitalRegistrationNumber: '',
       medicalDirector: '',
+      hospitalType: '',
     },
   });
   
@@ -126,7 +158,8 @@ export default function SignupForm() {
   async function onSubmit(values: SignupFormValues) {
     setIsLoading(true);
     try {
-      await signupWithEmail(values.email, values.password, values.displayName || '', values.role, values);
+      const displayName = values.patientFullName || values.doctorFullName || values.pharmacyName || values.labName || values.hospitalName || '';
+      await signupWithEmail(values.email, values.password, displayName, values.role, values);
       toast({
         title: "Registration Successful",
         description: "Please check your email to verify your account.",
@@ -144,18 +177,19 @@ export default function SignupForm() {
   }
 
   const handleNextStep = async () => {
-    let fieldsToValidate: (keyof SignupFormValues)[] = [];
-    if (step === 1) {
-        fieldsToValidate = ['role'];
-    } else if (step === 2) {
-        fieldsToValidate = ['displayName', 'email'];
-        if (currentRole === 'patient') {
-            fieldsToValidate.push('dob', 'gender');
-        }
+    let fieldsToValidate: (keyof SignupFormValues)[] = ['role'];
+    if (step === 2) {
+      fieldsToValidate.push('email');
+      switch(currentRole) {
+        case 'patient': fieldsToValidate.push('patientFullName'); break;
+        case 'doctor': fieldsToValidate.push('doctorFullName'); break;
+        case 'pharmacist': fieldsToValidate.push('pharmacyName'); break;
+        case 'medical_lab': fieldsToValidate.push('labName'); break;
+        case 'hospital': fieldsToValidate.push('hospitalName'); break;
+      }
     } else if (step === 3) {
-        fieldsToValidate = ['password', 'confirmPassword', 'acceptTerms'];
+      fieldsToValidate = ['password', 'confirmPassword', 'acceptTerms'];
     }
-
 
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
@@ -172,11 +206,13 @@ export default function SignupForm() {
           case 'doctor':
               return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="displayName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Dr. Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorFullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Dr. Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><FormControl><Input placeholder="Female" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="nationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><FormControl><Input placeholder="Nigerian" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorGender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><FormControl><Input placeholder="Female" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorDob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorNationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><FormControl><Input placeholder="Nigerian" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorPhone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="doctorAddress" render={({ field }) => (<FormItem><FormLabel>Current Address</FormLabel><FormControl><Input placeholder="123 Health Way, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="medicalLicenseNumber" render={({ field }) => (<FormItem><FormLabel>Medical License (MDCN)</FormLabel><FormControl><Input placeholder="MDCN/12345/2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="specialization" render={({ field }) => (<FormItem><FormLabel>Specialization</FormLabel><FormControl><Input placeholder="Cardiology" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="yearsOfExperience" render={({ field }) => (<FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -189,7 +225,8 @@ export default function SignupForm() {
                       <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Business Email</FormLabel><FormControl><Input type="email" placeholder="contact@mediplus.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="pharmacyAddress" render={({ field }) => (<FormItem><FormLabel>Pharmacy Address</FormLabel><FormControl><Input placeholder="123 Health Way, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="pcnLicense" render={({ field }) => (<FormItem><FormLabel>PCN License Number</FormLabel><FormControl><Input placeholder="PCN/REG/12345" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="pharmacistInCharge" render={({ field }) => (<FormItem><FormLabel>Pharmacist in Charge</FormLabel><FormControl><Input placeholder="John Oke" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="pharmacistInCharge" render={({ field }) => (<FormItem><FormLabel>Pharmacist in Charge Name</FormLabel><FormControl><Input placeholder="John Oke" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                       <FormField control={form.control} name="pharmacistInChargeLicense" render={({ field }) => (<FormItem><FormLabel>Pharmacist in Charge License ID</FormLabel><FormControl><Input placeholder="PCN/LIC/9876" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )
           case 'medical_lab':
@@ -200,6 +237,7 @@ export default function SignupForm() {
                       <FormField control={form.control} name="labAddress" render={({ field }) => (<FormItem><FormLabel>Lab Address</FormLabel><FormControl><Input placeholder="456 Test Avenue, Abuja" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="cacCertificate" render={({ field }) => (<FormItem><FormLabel>CAC Registration Number</FormLabel><FormControl><Input placeholder="RC 1234567" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="mlscnLicense" render={({ field }) => (<FormItem><FormLabel>MLSCN License Number</FormLabel><FormControl><Input placeholder="MLSCN/LAB/2024/001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="labManagerName" render={({ field }) => (<FormItem><FormLabel>Lab Manager/Director Name</FormLabel><FormControl><Input placeholder="Dr. Ada Okoro" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )
           case 'hospital':
@@ -208,22 +246,28 @@ export default function SignupForm() {
                       <FormField control={form.control} name="hospitalName" render={({ field }) => (<FormItem><FormLabel>Hospital Name</FormLabel><FormControl><Input placeholder="St. Nicholas Hospital" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Hospital Email</FormLabel><FormControl><Input type="email" placeholder="admin@stnicholas.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="hospitalAddress" render={({ field }) => (<FormItem><FormLabel>Hospital Address</FormLabel><FormControl><Input placeholder="789 Care Crescent, Port Harcourt" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="hospitalRegistrationNumber" render={({ field }) => (<FormItem><FormLabel>Operating License Number</FormLabel><FormControl><Input placeholder="FMoH/2024/123" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="hospitalRegistrationNumber" render={({ field }) => (<FormItem><FormLabel>Operating License Number (FMoH)</FormLabel><FormControl><Input placeholder="FMoH/2024/123" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="medicalDirector" render={({ field }) => (<FormItem><FormLabel>Medical Director Name</FormLabel><FormControl><Input placeholder="Dr. Fatima Bello" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="hospitalType" render={({ field }) => (<FormItem><FormLabel>Hospital Type</FormLabel><FormControl><Input placeholder="Private" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )
           default: // Patient
               return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="displayName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="patientFullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="whatsappNumber" render={({ field }) => (<FormItem><FormLabel>WhatsApp Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><FormControl><Input placeholder="Female" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="nationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><FormControl><Input placeholder="Nigerian" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactName" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactPhone" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Phone</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Relationship</FormLabel><FormControl><Input placeholder="Sibling" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="bloodType" render={({ field }) => (<FormItem><FormLabel>Blood Type</FormLabel><FormControl><Input placeholder="O+" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="allergies" render={({ field }) => (<FormItem><FormLabel>Allergies</FormLabel><FormControl><Textarea placeholder="e.g. Penicillin, Peanuts" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="chronicConditions" render={({ field }) => (<FormItem><FormLabel>Chronic Conditions</FormLabel><FormControl><Textarea placeholder="e.g. Asthma, Hypertension" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
               )
       }
@@ -246,7 +290,7 @@ export default function SignupForm() {
                   name="role"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Select Your Role</FormLabel>
+                      <FormLabel className="text-lg font-semibold font-headline">Step 1: Select Your Role</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -349,12 +393,12 @@ export default function SignupForm() {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                                 <FormLabel>
-                                Accept terms and conditions
+                                Accept Privacy Policy & Consent Agreement
                                 </FormLabel>
                                 <FormDescription>
                                 By signing up, you agree to our{' '}
                                 <Link href="/privacy-policy" className="text-primary hover:underline" target="_blank">
-                                    Privacy Policy
+                                    Privacy Policy & Consent Agreement
                                 </Link>
                                 .
                                 </FormDescription>
@@ -383,3 +427,5 @@ export default function SignupForm() {
     </Form>
   );
 }
+
+    
