@@ -1,4 +1,4 @@
-import { Stethoscope, Bot, Menu, Search, User } from 'lucide-react';
+import { Stethoscope, Bot, Menu, Search, User, Info, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,8 +12,8 @@ import { Input } from '../ui/input';
 const navLinks = [
   { href: "/symptom-checker", label: "Symptom Checker", icon: <Bot className="h-4 w-4" /> },
   { href: "/find-a-doctor", label: "Find a Doctor", icon: <Search className="h-4 w-4" /> },
-  { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contact" },
+  { href: "/about", label: "About Us", icon: <Info className="h-4 w-4" /> },
+  { href: "/contact", label: "Contact", icon: <MessageSquare className="h-4 w-4" /> },
 ]
 
 export default function Header() {
@@ -84,3 +84,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
