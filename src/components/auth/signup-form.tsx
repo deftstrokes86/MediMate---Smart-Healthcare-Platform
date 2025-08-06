@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { countries } from '@/lib/countries';
-import { Label } from '../ui/label';
+import { Label } from '@/components/ui/label';
 
 const roles = [
   { id: 'patient', label: 'Patient' },
@@ -396,16 +396,14 @@ export default function SignupForm() {
                           {roles.map(role => (
                             <FormItem key={role.id} className="flex items-center space-x-3 space-y-0">
                               <FormControl>
-                                <div>
                                   <RadioGroupItem value={role.id} id={role.id} className="sr-only peer" />
-                                  <Label
-                                    htmlFor={role.id}
-                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full"
-                                  >
-                                    {role.label}
-                                  </Label>
-                                </div>
                               </FormControl>
+                              <Label
+                                htmlFor={role.id}
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full"
+                              >
+                                {role.label}
+                              </Label>
                             </FormItem>
                           ))}
                         </RadioGroup>
