@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
 
@@ -24,6 +24,7 @@ interface AuthUser extends User {
 interface AuthContextType {
     user: AuthUser | null;
     loading: boolean;
+    roleVerified: boolean;
     signupWithEmail: (email: string, password: string, displayName: string, role: Role, additionalData?: any) => Promise<any>;
     loginWithEmail: (email: string, password: string) => Promise<any>;
     logout: () => Promise<void>;
@@ -35,22 +36,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [roleVerified, setRoleVerified] = useState(false);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            setRoleVerified(false);
             if (user) {
-                const idTokenResult = await user.getIdTokenResult(true); // Force refresh
-                const role = idTokenResult.claims.role as Role || undefined;
-                setUser({ ...user, role });
+                try {
+                    const idTokenResult = await user.getIdTokenResult(true); // Force refresh
+                    const role = idTokenResult.claims.role as Role | undefined;
+                    const authUser: AuthUser = { ...user, role };
+                    setUser(authUser);
+                    
+                    // Redirect logic after user and role are confirmed
+                    if (role === 'admin' || role === 'super_admin') {
+                         if (!pathname.startsWith('/admin')) {
+                            router.push('/admin/dashboard');
+                        }
+                    } else {
+                         if (pathname.startsWith('/admin')) {
+                            router.push('/');
+                        }
+                    }
+                } catch(error) {
+                    console.error("Error getting user token:", error);
+                    setUser(user); // Set user without role if token fails
+                } finally {
+                    setRoleVerified(true);
+                }
             } else {
                 setUser(null);
+                setRoleVerified(true); // No user, so verification is "complete"
             }
             setLoading(false);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [router, pathname]);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -175,28 +199,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         await setDoc(profileDocRef, profileData, { merge: true });
         
-        if (role !== 'super_admin') {
+        if (role !== 'super_admin' && !pathname.startsWith('/admin')) {
             router.push('/');
         }
         return userCredential;
     };
 
     const loginWithEmail = async (email: string, password: string) => {
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        const idTokenResult = await result.user.getIdTokenResult(true); // Force a refresh to get latest claims
-        const role = idTokenResult.claims.role;
-
-        if (role === 'admin' || role === 'super_admin') {
-            router.push('/admin/dashboard');
-        } else {
-            router.push('/');
-        }
-        return result;
+        // Redirection is now handled by onAuthStateChanged, so we just sign in here.
+        return signInWithEmailAndPassword(auth, email, password);
     };
 
     const logout = async () => {
         await signOut(auth);
         setUser(null);
+        setRoleVerified(false);
         router.push('/login');
     };
     
@@ -207,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const value = {
         user,
         loading,
+        roleVerified,
         signupWithEmail,
         loginWithEmail,
         logout,
@@ -223,3 +241,5 @@ export function useAuth() {
     }
     return context;
 }
+
+    

@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { loading } = useAuth();
+  const { loading, roleVerified } = useAuth();
   const pathname = usePathname();
 
   const noHeaderFooterRoutes = [
@@ -22,7 +22,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const showHeaderFooter = !noHeaderFooterRoutes.includes(pathname) && !isInviteRoute && !isAdminRoute;
 
-  if (loading) {
+  // Wait for both initial user loading and role verification to complete
+  if (loading || !roleVerified) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -38,3 +39,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+    
