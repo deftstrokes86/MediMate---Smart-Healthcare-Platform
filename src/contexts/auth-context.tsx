@@ -96,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     fullName: displayName,
                     dob: additionalData.dob,
                     gender: additionalData.gender,
+                    nationality: additionalData.nationality,
                     address: additionalData.address,
                     emergencyContact: {
                         name: additionalData.emergencyContactName,
@@ -180,3 +181,5 @@ export function useAuth() {
     }
     return context;
 }
+
+    

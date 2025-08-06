@@ -41,6 +41,7 @@ const formSchema = z.object({
   gender: z.string().optional(),
   nationality: z.string().optional(),
   address: z.string().optional(),
+  phone: z.string().optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   
@@ -99,6 +100,7 @@ export default function SignupForm() {
       gender: '',
       nationality: '',
       address: '',
+      phone: '',
       emergencyContactName: '',
       emergencyContactPhone: '',
       medicalLicenseNumber: '',
@@ -215,9 +217,11 @@ export default function SignupForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="displayName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><FormControl><Input placeholder="Female" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                     <FormField control={form.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="nationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><FormControl><Input placeholder="Nigerian" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactName" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="emergencyContactPhone" render={({ field }) => (<FormItem><FormLabel>Emergency Contact Phone</FormLabel><FormControl><Input placeholder="08012345678" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
@@ -380,3 +384,4 @@ export default function SignupForm() {
   );
 }
 
+    
