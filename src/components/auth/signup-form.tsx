@@ -396,7 +396,7 @@ export default function SignupForm() {
                           {roles.map(role => (
                             <FormItem key={role.id} className="flex items-center space-x-3 space-y-0">
                               <FormControl>
-                                  <RadioGroupItem value={role.id} id={role.id} className="sr-only peer" />
+                                <RadioGroupItem value={role.id} id={role.id} className="sr-only peer" />
                               </FormControl>
                               <Label
                                 htmlFor={role.id}
@@ -430,29 +430,29 @@ export default function SignupForm() {
                                 defaultValue={field.value}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
                                 >
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                    <FormControl>
-                                        <div>
-                                            <RadioGroupItem value="adult" id="adult" className="sr-only peer" />
-                                            <Label htmlFor="adult" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full">
-                                                <User className="h-8 w-8 mb-2" />
-                                                <span className="font-bold">18 and Over</span>
-                                                <span className="text-sm text-muted-foreground">For yourself</span>
-                                            </Label>
-                                        </div>
-                                    </FormControl>
+                                <FormItem>
+                                  <FormControl>
+                                    <div>
+                                        <RadioGroupItem value="adult" id="adult" className="sr-only peer" />
+                                        <Label htmlFor="adult" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full h-full">
+                                            <User className="h-8 w-8 mb-2" />
+                                            <span className="font-bold">18 and Over</span>
+                                            <span className="text-sm text-muted-foreground">For yourself</span>
+                                        </Label>
+                                    </div>
+                                  </FormControl>
                                 </FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                    <FormControl>
-                                        <div>
-                                            <RadioGroupItem value="minor" id="minor" className="sr-only peer" />
-                                            <Label htmlFor="minor" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full">
-                                                <Baby className="h-8 w-8 mb-2" />
-                                                <span className="font-bold">Under 18</span>
-                                                <span className="text-sm text-muted-foreground">For a child or dependent</span>
-                                            </Label>
-                                        </div>
-                                    </FormControl>
+                                <FormItem>
+                                  <FormControl>
+                                    <div>
+                                        <RadioGroupItem value="minor" id="minor" className="sr-only peer" />
+                                        <Label htmlFor="minor" className="flex flex-col items-center justify-center text-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer w-full h-full">
+                                            <Baby className="h-8 w-8 mb-2" />
+                                            <span className="font-bold">Under 18</span>
+                                            <span className="text-sm text-muted-foreground">For a child or dependent</span>
+                                        </Label>
+                                    </div>
+                                  </FormControl>
                                 </FormItem>
                             </RadioGroup>
                         </FormControl>
@@ -600,3 +600,5 @@ export default function SignupForm() {
     </Form>
   );
 }
+
+    
