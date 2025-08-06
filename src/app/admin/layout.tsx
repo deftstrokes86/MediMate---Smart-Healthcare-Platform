@@ -13,19 +13,22 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { Loader2, Users, ShieldCheck, BarChart, Settings, LogOut, Stethoscope } from "lucide-react";
+import { Loader2, Users, ShieldCheck, BarChart, Settings, LogOut, Stethoscope, LayoutDashboard, Hospital, FlaskConical, Pill, UserCheck, MessageSquare, Megaphone, FolderCog, BookUser, Search } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname } from 'next/navigation'
-
+import { usePathname } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   React.useEffect(() => {
     if (!loading && (!user || (user.role !== "admin" && user.role !== "super_admin"))) {
@@ -42,11 +45,31 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: <Users /> },
-    { href: "/admin/verification", label: "Verification", icon: <ShieldCheck /> },
-    { href: "/admin/analytics", label: "Analytics", icon: <BarChart /> },
-    { href: "/admin/settings", label: "Settings", icon: <Settings /> },
-  ]
+    { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
+    { 
+      group: "Verifications",
+      icon: <UserCheck />,
+      items: [
+        { href: "/admin/verifications/doctors", label: "Doctors", icon: <Stethoscope /> },
+        { href: "/admin/verifications/hospitals", label: "Hospitals", icon: <Hospital /> },
+        { href: "/admin/verifications/labs", label: "Labs", icon: <FlaskConical /> },
+        { href: "/admin/verifications/pharmacies", label: "Pharmacies", icon: <Pill /> },
+      ]
+    },
+    { 
+      group: "All Users",
+      icon: <Users />,
+      items: [
+        { href: "/admin/users/patients", label: "Patients" },
+        { href: "/admin/users/staff", label: "Medical Staff" },
+      ]
+    },
+    { href: "/admin/announcements", label: "Announcements", icon: <Megaphone /> },
+    { href: "/admin/support", label: "Support Inbox", icon: <MessageSquare /> },
+    { href: "/admin/admins", label: "Admin Control", icon: <BookUser /> },
+    { href: "/admin/logs", label: "Reports / Logs", icon: <BarChart /> },
+    { href: "/admin/settings", label: "System Settings", icon: <FolderCog /> },
+  ];
 
   return (
     <SidebarProvider>
@@ -54,20 +77,38 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
              <div className="flex items-center gap-2">
                 <Stethoscope className="h-8 w-8 text-primary" />
-                <span className="text-xl font-bold font-headline">MediMate Admin</span>
+                <span className="text-xl font-bold font-headline">MediMate</span>
              </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map((item) => (
-                 <SidebarMenuItem key={item.href}>
+            {navItems.map((item, index) => (
+              item.group ? (
+                <SidebarGroup key={index}>
+                  <SidebarGroupLabel className="flex items-center gap-2">
+                    {item.icon} {item.group}
+                  </SidebarGroupLabel>
+                  {item.items.map(subItem => (
+                     <SidebarMenuItem key={subItem.href}>
+                        <SidebarMenuButton asChild isActive={pathname.startsWith(subItem.href)}>
+                            <Link href={subItem.href}>
+                                {subItem.icon && <div className="w-4 h-4" />} 
+                                <span>{subItem.label}</span>
+                            </Link>
+                        </SidebarMenuButton>
+                     </SidebarMenuItem>
+                  ))}
+                </SidebarGroup>
+              ) : (
+                <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
                         <Link href={item.href}>
                             {item.icon}
                             <span>{item.label}</span>
                         </Link>
                     </SidebarMenuButton>
-                 </SidebarMenuItem>
+                </SidebarMenuItem>
+              )
             ))}
           </SidebarMenu>
         </SidebarContent>
@@ -93,18 +134,21 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger className="md:hidden" />
-            <div className="w-full flex-1">
-                {/* Optional: Add a search bar or other header content here */}
+            <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search..." className="w-full rounded-lg bg-white pl-8 md:w-[200px] lg:w-[320px]" />
             </div>
+            <Button variant="ghost" size="icon" className="rounded-full">
+                <Users className="h-5 w-5" />
+            </Button>
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
     </SidebarProvider>
   );
 }
-
 
 export default function ProtectedAdminLayout({
   children,
