@@ -51,23 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUser(authUser);
                     
                     const isAdmin = role === 'admin' || role === 'super_admin';
+                    const isDoctor = role === 'doctor';
                     
-                    // Redirect logic after user and role are confirmed
-                    if (isAdmin) {
-                        // If an admin is on a non-admin page, redirect to dashboard
-                         if (!pathname.startsWith('/admin')) {
+                    if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') {
+                         if (isAdmin) {
                             router.push('/admin/dashboard');
-                        }
-                    } else {
-                        // If a non-admin is on an admin page, redirect to home
-                         if (pathname.startsWith('/admin')) {
+                         } else if (isDoctor) {
+                             router.push('/doctor/dashboard');
+                         } else {
                             router.push('/');
-                        }
-                        // If a regular user is on a login/signup page, redirect to home
-                         else if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') {
-                             router.push('/');
                          }
+                    } else if (isAdmin && !pathname.startsWith('/admin')) {
+                        router.push('/admin/dashboard');
+                    } else if (isDoctor && !pathname.startsWith('/doctor')) {
+                        router.push('/doctor/dashboard');
+                    } else if (!isAdmin && !isDoctor && (pathname.startsWith('/admin') || pathname.startsWith('/doctor'))) {
+                        router.push('/');
                     }
+
                 } catch(error) {
                     console.error("Error getting user token:", error);
                     setUser(user); // Set user without role if token fails

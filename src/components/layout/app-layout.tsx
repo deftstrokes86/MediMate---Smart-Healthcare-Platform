@@ -18,9 +18,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const isAdminRoute = pathname.startsWith('/admin');
+  const isDoctorRoute = pathname.startsWith('/doctor');
   const isInviteRoute = pathname.includes('/super-admin-portal/invite-only');
 
-  const showHeaderFooter = !noHeaderFooterRoutes.includes(pathname) && !isInviteRoute && !isAdminRoute;
+  const showHeaderFooter = !noHeaderFooterRoutes.includes(pathname) && !isInviteRoute && !isAdminRoute && !isDoctorRoute;
 
   // Wait for both initial user loading and role verification to complete
   if (loading || !roleVerified) {
@@ -31,13 +32,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (!showHeaderFooter) {
+     return <main className="flex-1">{children}</main>;
+  }
+
   return (
     <div className="relative flex min-h-dvh flex-col bg-background">
-      {showHeaderFooter && <Header />}
+      <Header />
       <main className="flex-1">{children}</main>
-      {showHeaderFooter && <Footer />}
+      <Footer />
     </div>
   );
 }
-
-    
