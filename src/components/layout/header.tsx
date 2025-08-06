@@ -1,4 +1,4 @@
-import { Stethoscope, Bot, Menu, Search, User, Info, MessageSquare } from 'lucide-react';
+import { Stethoscope, Bot, Menu, Search, User, Info, MessageSquare, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,13 +7,31 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Input } from '../ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+  } from "@/components/ui/accordion"
 
 const navLinks = [
-  { href: "/symptom-checker", label: "Symptom Checker", icon: <Bot className="h-4 w-4" /> },
+  { href: "/symptom-checker", label: "Sympton Checker", icon: <Bot className="h-4 w-4" /> },
   { href: "/find-a-doctor", label: "Find a Doctor", icon: <Search className="h-4 w-4" /> },
-  { href: "/about", label: "About Us", icon: <Info className="h-4 w-4" /> },
   { href: "/contact", label: "Contact", icon: <MessageSquare className="h-4 w-4" /> },
+];
+
+const aboutLinks = [
+    { href: "/about#features", label: "Features" },
+    { href: "/about#how-it-works", label: "How It Works" },
+    { href: "/faq", label: "FAQ" },
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
 ]
 
 export default function Header() {
@@ -36,6 +54,21 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+             <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1.5 font-medium text-foreground/60 transition-colors hover:text-foreground/80 outline-none">
+                     <Info className="h-4 w-4" />
+                    About Us
+                    <ChevronDown className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem asChild><Link href="/about">About MediMate</Link></DropdownMenuItem>
+                    {aboutLinks.map(link => (
+                         <DropdownMenuItem key={link.href} asChild>
+                            <Link href={link.href}>{link.label}</Link>
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
         </div>
 
@@ -72,6 +105,20 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="about-us" className="border-b-0">
+                        <AccordionTrigger className="flex items-center gap-2 text-lg font-medium text-foreground/80 hover:text-primary hover:no-underline">
+                             <Info className="h-4 w-4" />
+                             About Us
+                        </AccordionTrigger>
+                        <AccordionContent className="pl-8 flex flex-col gap-4 pt-2">
+                             <Link href="/about" className="text-base font-medium text-foreground/70 hover:text-primary">About MediMate</Link>
+                             {aboutLinks.map(link => (
+                                <Link key={link.href} href={link.href} className="text-base font-medium text-foreground/70 hover:text-primary">{link.label}</Link>
+                             ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
               </div>
               <div className="mt-auto flex flex-col gap-2 pt-6">
                 <Button variant="ghost">Log In</Button>
@@ -84,5 +131,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

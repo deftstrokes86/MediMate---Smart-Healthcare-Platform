@@ -71,7 +71,7 @@ export default function AboutPage() {
         </section>
 
         {/* Features Section */}
-        <section className="py-12 md:py-24 bg-secondary/30">
+        <section id="features" className="py-12 md:py-24 bg-secondary/30">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline">A Deeper Look at Our Features</h2>
@@ -113,6 +113,42 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* How It Works Section */}
+        <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32">
+            <div className="container px-4 md:px-6">
+                 <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+                    <div className="space-y-2">
+                         <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">
+                            How It Works
+                        </div>
+                        <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                            Getting Started is Simple
+                        </h2>
+                         <p className="max-w-[900px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                            Follow these simple steps to take control of your healthcare.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="relative">
+                    {/* Dashed line */}
+                    <div className="absolute left-1/2 top-12 bottom-12 w-0.5 bg-border border-l-2 border-dashed border-primary/50 hidden md:block" aria-hidden="true"></div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                        <StepCard icon={<UserPlus />} title="1. Sign Up" description="Create a free account in minutes to get started." />
+                        <div />
+                        <div />
+                        <StepCard icon={<Calendar />} title="2. Book a Consultation" description="Connect with a doctor via video or phone." textAlignment="text-right" />
+                        <StepCard icon={<FileText />} title="3. Access Services" description="Order lab tests, request prescriptions, or schedule hospital visits." />
+                         <div />
+                         <div />
+                        <StepCard icon={<HeartPulse />} title="4. Manage Your Health" description="Track everything in your secure, unified dashboard." textAlignment="text-right" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
          {/* Designed for You Section */}
         <section className="py-12 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
@@ -151,3 +187,13 @@ export default function AboutPage() {
     </div>
   );
 }
+
+const StepCard = ({ icon, title, description, textAlignment = 'text-left' }: { icon: React.ReactNode, title: string, description: string, textAlignment?: string }) => (
+    <div className={`relative ${textAlignment}`}>
+        <div className="inline-block bg-background p-4 rounded-full border-2 border-primary mb-4 relative z-10">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-8 w-8 text-primary" })}
+        </div>
+        <h3 className="text-2xl font-bold font-headline">{title}</h3>
+        <p className="text-foreground/80 mt-2">{description}</p>
+    </div>
+);
