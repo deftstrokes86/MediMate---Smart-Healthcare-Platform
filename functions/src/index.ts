@@ -18,13 +18,13 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
 
     const userDoc = await userDocRef.get();
     if (!userDoc.exists) {
-        functions.logger.warn(`User document not found for uid: ${user.uid}`);
+        functions.logger.warn(`User document not found for uid: ${user.uid}, cannot set custom claims.`);
         return null;
     }
     
     const roles = userDoc.data()?.roles;
     if (!roles) {
-        functions.logger.warn(`No roles found for user: ${user.uid}`);
+        functions.logger.warn(`No roles found for user: ${user.uid}, cannot set custom claims.`);
         return null;
     }
     const role = Object.keys(roles).find(r => roles[r] === true);
@@ -33,7 +33,7 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
       await admin.auth().setCustomUserClaims(user.uid, { role: role });
       functions.logger.info(`Custom claim set for user: ${user.uid}`, { role: role });
     } else {
-       functions.logger.warn(`No role found for user: ${user.uid}`);
+       functions.logger.warn(`No primary role found for user: ${user.uid}`);
     }
 
     return null;

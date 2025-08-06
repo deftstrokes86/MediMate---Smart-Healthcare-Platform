@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const idTokenResult = await user.getIdTokenResult();
+                const idTokenResult = await user.getIdTokenResult(true); // Force refresh
                 const role = idTokenResult.claims.role as Role || undefined;
                 setUser({ ...user, role });
             } else {
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const loginWithEmail = async (email: string, password: string) => {
         const result = await signInWithEmailAndPassword(auth, email, password);
-        const idTokenResult = await result.user.getIdTokenResult();
+        const idTokenResult = await result.user.getIdTokenResult(true); // Force a refresh to get latest claims
         const role = idTokenResult.claims.role;
 
         if (role === 'admin' || role === 'super_admin') {
@@ -196,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         await signOut(auth);
+        setUser(null);
         router.push('/login');
     };
     
@@ -212,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendPasswordReset
     };
 
-    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
