@@ -1,4 +1,4 @@
-import { Stethoscope, Bot, Menu, Search, User, Info, MessageSquare, ChevronDown } from 'lucide-react';
+import { Stethoscope, Bot, Menu, Search, Info, MessageSquare, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,14 +21,14 @@ import {
   } from "@/components/ui/accordion"
 
 const navLinks = [
-  { href: "/symptom-checker", label: "Sympton Checker", icon: <Bot className="h-4 w-4" /> },
+  { href: "/symptom-checker", label: "Symptom Checker", icon: <Bot className="h-4 w-4" /> },
   { href: "/find-a-doctor", label: "Find a Doctor", icon: <Search className="h-4 w-4" /> },
   { href: "/contact", label: "Contact", icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
 const aboutLinks = [
     { href: "/features", label: "Features" },
-    { href: "/about#how-it-works", label: "How It Works" },
+    { href: "/how-it-works", label: "How It Works" },
     { href: "/faq", label: "FAQ" },
     { href: "/privacy", label: "Privacy Policy" },
     { href: "/terms", label: "Terms of Service" },
@@ -89,7 +89,7 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
-              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+              <SheetTitle>Mobile Menu</SheetTitle>
               <Link href="/" className="mr-6 flex items-center space-x-2 mb-6">
                 <Stethoscope className="h-6 w-6 text-primary" />
                 <span className="font-bold font-headline text-lg">MediMate</span>
