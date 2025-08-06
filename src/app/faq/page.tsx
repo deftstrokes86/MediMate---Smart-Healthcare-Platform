@@ -93,7 +93,9 @@ export default function FaqPage() {
                                         {faq.question}
                                     </span>
                                 </AccordionTrigger>
-                                <AccordionContent className="pt-2 text-base text-foreground/80 prose" dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                                <AccordionContent>
+                                    <div className="pt-2 text-base text-foreground/80 prose" dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                                </AccordionContent>
                             </AccordionItem>
                         ))}
                     </Accordion>

@@ -51,7 +51,7 @@ const AccordionContent = React.forwardRef<
       {...props}
     >
       <div className={cn("pb-4 pt-0", className)}>
-        {props.dangerouslySetInnerHTML ? <div dangerouslySetInnerHTML={props.dangerouslySetInnerHTML} /> : children}
+        {children}
       </div>
     </AccordionPrimitive.Content>
   );
