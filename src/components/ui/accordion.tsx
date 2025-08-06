@@ -43,20 +43,26 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
-    ref={ref}
-    className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
-    {...props}
-  >
-    <div
-      className={cn("pb-4 pt-0", className)}
-      dangerouslySetInnerHTML={props.dangerouslySetInnerHTML as { __html: string } | undefined}
+>(({ className, children, ...props }, ref) => {
+  const dangerouslySetInnerHTML = props.dangerouslySetInnerHTML;
+  // @ts-ignore
+  delete props.dangerouslySetInnerHTML;
+
+  return (
+    <AccordionPrimitive.Content
+      ref={ref}
+      className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+      {...props}
     >
-      {props.dangerouslySetInnerHTML ? null : children}
-    </div>
-  </AccordionPrimitive.Content>
-));
+      <div
+        className={cn("pb-4 pt-0", className)}
+        dangerouslySetInnerHTML={dangerouslySetInnerHTML as { __html: string } | undefined}
+      >
+        {dangerouslySetInnerHTML ? null : children}
+      </div>
+    </AccordionPrimitive.Content>
+  );
+});
 AccordionContent.displayName = AccordionPrimitive.Content.displayName
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
