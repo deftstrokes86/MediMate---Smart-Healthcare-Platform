@@ -34,7 +34,7 @@ const formSchema = z.object({
   confirmPassword: passwordSchema,
   
   // Universal
-  displayName: z.string().min(2, "Please enter your full name or facility name."),
+  displayName: z.string().min(2, "Please enter your full name or facility name.").optional(),
   
   // Patient
   dob: z.string().optional(),
@@ -95,6 +95,27 @@ export default function SignupForm() {
       confirmPassword: '',
       displayName: '',
       acceptTerms: false,
+      dob: '',
+      gender: '',
+      nationality: '',
+      address: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      medicalLicenseNumber: '',
+      specialization: '',
+      yearsOfExperience: '',
+      pharmacyName: '',
+      pharmacyAddress: '',
+      pcnLicense: '',
+      pharmacistInCharge: '',
+      labName: '',
+      labAddress: '',
+      cacCertificate: '',
+      mlscnLicense: '',
+      hospitalName: '',
+      hospitalAddress: '',
+      hospitalRegistrationNumber: '',
+      medicalDirector: '',
     },
   });
   
@@ -103,7 +124,7 @@ export default function SignupForm() {
   async function onSubmit(values: SignupFormValues) {
     setIsLoading(true);
     try {
-      await signupWithEmail(values.email, values.password, values.displayName, values.role, values);
+      await signupWithEmail(values.email, values.password, values.displayName || '', values.role, values);
       toast({
         title: "Registration Successful",
         description: "Please check your email to verify your account.",
@@ -358,3 +379,4 @@ export default function SignupForm() {
     </Form>
   );
 }
+
