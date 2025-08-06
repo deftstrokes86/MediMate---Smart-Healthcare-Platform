@@ -27,7 +27,7 @@ const navLinks = [
 ];
 
 const aboutLinks = [
-    { href: "/about#features", label: "Features" },
+    { href: "/features", label: "Features" },
     { href: "/about#how-it-works", label: "How It Works" },
     { href: "/faq", label: "FAQ" },
     { href: "/privacy", label: "Privacy Policy" },
