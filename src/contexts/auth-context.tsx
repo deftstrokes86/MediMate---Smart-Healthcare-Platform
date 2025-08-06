@@ -50,15 +50,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const authUser: AuthUser = { ...user, role };
                     setUser(authUser);
                     
+                    const isAdmin = role === 'admin' || role === 'super_admin';
+                    
                     // Redirect logic after user and role are confirmed
-                    if (role === 'admin' || role === 'super_admin') {
+                    if (isAdmin) {
+                        // If an admin is on a non-admin page, redirect to dashboard
                          if (!pathname.startsWith('/admin')) {
                             router.push('/admin/dashboard');
                         }
                     } else {
+                        // If a non-admin is on an admin page, redirect to home
                          if (pathname.startsWith('/admin')) {
                             router.push('/');
                         }
+                        // If a regular user is on a login/signup page, redirect to home
+                         else if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') {
+                             router.push('/');
+                         }
                     }
                 } catch(error) {
                     console.error("Error getting user token:", error);
@@ -129,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         }
                     };
                 } else {
+                    profileData.isVerified = true;
                     profileData.patientData = {
                         isMinor: false,
                         fullName: additionalData.patientFullName,
@@ -150,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
                 break;
             case 'doctor':
+                 profileData.isVerified = false;
                 profileData.doctorData = { 
                     fullName: additionalData.doctorFullName,
                     gender: additionalData.doctorGender,
@@ -163,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'pharmacist':
+                 profileData.isVerified = false;
                 profileData.pharmacistData = {
                     pharmacyName: additionalData.pharmacyName,
                     address: additionalData.pharmacyAddress,
@@ -172,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'medical_lab':
+                 profileData.isVerified = false;
                 profileData.medicalLabData = {
                     labName: additionalData.labName,
                     address: additionalData.labAddress,
@@ -181,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'hospital':
+                 profileData.isVerified = false;
                 profileData.hospitalData = {
                     hospitalName: additionalData.hospitalName,
                     address: additionalData.hospitalAddress,
@@ -199,9 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         await setDoc(profileDocRef, profileData, { merge: true });
         
-        if (role !== 'super_admin' && !pathname.startsWith('/admin')) {
-            router.push('/');
-        }
+        // Redirection after signup is handled by onAuthStateChanged
         return userCredential;
     };
 
@@ -241,5 +252,3 @@ export function useAuth() {
     }
     return context;
 }
-
-    
