@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { Stethoscope, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-1">
              <h3 className="font-semibold mb-4 font-headline">Legal</h3>
             <ul className="space-y-2">
-              <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
+              <li><Link href="/privacy-policy" className="text-sm text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
               <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">Terms of Service</Link></li>
             </ul>
           </div>

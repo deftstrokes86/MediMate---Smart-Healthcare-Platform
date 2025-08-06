@@ -63,9 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        const finalDisplayName = role === 'patient' 
-            ? displayName 
-            : additionalData.hospitalName || additionalData.pharmacyName || additionalData.labName || displayName;
+        let finalDisplayName = displayName;
+        if (role === 'hospital') finalDisplayName = additionalData.hospitalName;
+        if (role === 'pharmacist') finalDisplayName = additionalData.pharmacyName;
+        if (role === 'medical_lab') finalDisplayName = additionalData.labName;
 
         // Update Firebase Auth profile
         await updateProfile(firebaseUser, { displayName: finalDisplayName });
@@ -93,6 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             case 'patient':
                 profileData.patientData = {
                     fullName: displayName,
+                    dob: additionalData.dob,
+                    gender: additionalData.gender,
+                    address: additionalData.address,
+                    emergencyContact: {
+                        name: additionalData.emergencyContactName,
+                        phone: additionalData.emergencyContactPhone,
+                    },
                 };
                 break;
             case 'doctor':

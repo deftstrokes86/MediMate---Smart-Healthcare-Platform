@@ -35,7 +35,7 @@ const aboutLinks = [
     { href: "/features", label: "Features" },
     { href: "/how-it-works", label: "How It Works" },
     { href: "/faq", label: "FAQ" },
-    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/privacy-policy", label: "Privacy Policy" },
     { href: "/terms", label: "Terms of Service" },
 ]
 
