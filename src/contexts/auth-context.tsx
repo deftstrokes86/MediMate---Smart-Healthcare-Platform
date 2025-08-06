@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Create profile document in 'profiles' collection
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
-            isVerified: false,
+            isVerified: role === 'patient' && additionalData.patientType !== 'minor',
             createdAt: new Date(),
             updatedAt: new Date(),
         };
