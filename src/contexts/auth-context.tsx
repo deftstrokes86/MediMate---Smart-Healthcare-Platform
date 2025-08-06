@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Fetch user role from firestore
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
@@ -65,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         await updateProfile(firebaseUser, { displayName });
 
-        // Create user document in 'users' collection
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         await setDoc(userDocRef, {
             email: firebaseUser.email,
@@ -76,10 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             roles: { [role]: true }
         });
 
-        // Create profile document in 'profiles' collection
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
-            isVerified: role === 'patient' && additionalData.patientType !== 'minor',
+             isVerified: role === 'patient' && additionalData.patientType === 'adult',
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -101,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             fullName: additionalData.guardianFullName,
                             relationship: additionalData.guardianRelationship,
                             phone: additionalData.guardianPhone,
-                            email: additionalData.email, // The login email is the guardian's
+                            email: additionalData.email,
                             idNumber: additionalData.guardianId,
                             proofOfGuardianship: additionalData.guardianProof,
                         }
@@ -176,7 +173,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const loginWithEmail = async (email: string, password: string) => {
         const result = await signInWithEmailAndPassword(auth, email, password);
-        router.push('/');
+        const userDocRef = doc(db, 'users', result.user.uid);
+        const userDoc = await getDoc(userDocRef);
+         if (userDoc.exists()) {
+            const roles = userDoc.data().roles;
+            const role = Object.keys(roles).find(r => roles[r] === true) as Role;
+            if (role === 'admin') {
+                router.push('/admin/dashboard');
+            } else {
+                 router.push('/');
+            }
+        } else {
+             router.push('/');
+        }
         return result;
     };
 
