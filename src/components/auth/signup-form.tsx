@@ -19,40 +19,48 @@ const roles = [
   { id: 'patient', label: 'Patient' },
   { id: 'doctor', label: 'Doctor' },
   { id: 'pharmacist', label: 'Pharmacist' },
-  { id: 'lab_technician', label: 'Lab Technician' },
+  { id: 'medical_lab', label: 'Medical Lab' },
   { id: 'hospital', label: 'Hospital' },
 ];
 
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters long.");
 
 const formSchema = z.object({
-  role: z.enum(['patient', 'doctor', 'pharmacist', 'lab_technician', 'hospital']),
+  role: z.enum(['patient', 'doctor', 'pharmacist', 'medical_lab', 'hospital']),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: passwordSchema,
   confirmPassword: passwordSchema,
-  displayName: z.string().min(2, "Please enter your full name or hospital name."),
-  // Role-specific fields
-  licenseNumber: z.string().optional(),
+  displayName: z.string().min(2, "Please enter your full name or facility name."),
+  
+  // Doctor
+  gender: z.string().optional(),
+  dob: z.string().optional(),
+  nationality: z.string().optional(),
+  medicalLicenseNumber: z.string().optional(),
   specialization: z.string().optional(),
-  pharmacyRegistration: z.string().optional(),
-  labAffiliation: z.string().optional(),
+  yearsOfExperience: z.string().optional(),
+  
+  // Pharmacist
+  pharmacyName: z.string().optional(),
+  pharmacyAddress: z.string().optional(),
+  pcnLicense: z.string().optional(), // Pharmacists Council of Nigeria
+  pharmacistInCharge: z.string().optional(),
+
+  // Medical Lab
+  labName: z.string().optional(),
+  labAddress: z.string().optional(),
+  cacCertificate: z.string().optional(), // Corporate Affairs Commission
+  mlscnLicense: z.string().optional(), // Medical Laboratory Science Council of Nigeria
+
+  // Hospital
+  hospitalName: z.string().optional(),
+  hospitalAddress: z.string().optional(),
   hospitalRegistrationNumber: z.string().optional(),
-  address: z.string().optional(),
+  medicalDirector: z.string().optional(),
+
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
-}).refine(data => data.role !== 'doctor' || (data.licenseNumber && data.specialization), {
-    message: "License number and specialization are required for doctors.",
-    path: ["licenseNumber"],
-}).refine(data => data.role !== 'pharmacist' || data.pharmacyRegistration, {
-    message: "Pharmacy registration is required for pharmacists.",
-    path: ["pharmacyRegistration"],
-}).refine(data => data.role !== 'lab_technician' || data.labAffiliation, {
-    message: "Lab affiliation is required for lab technicians.",
-    path: ["labAffiliation"],
-}).refine(data => data.role !== 'hospital' || (data.hospitalRegistrationNumber && data.address), {
-    message: "Hospital registration number and address are required for hospitals.",
-    path: ["hospitalRegistrationNumber"],
 });
 
 type SignupFormValues = z.infer<typeof formSchema>;
@@ -80,14 +88,7 @@ export default function SignupForm() {
   async function onSubmit(values: SignupFormValues) {
     setIsLoading(true);
     try {
-      await signupWithEmail(values.email, values.password, values.displayName, values.role, {
-          licenseNumber: values.licenseNumber,
-          specialization: values.specialization,
-          pharmacyRegistration: values.pharmacyRegistration,
-          labAffiliation: values.labAffiliation,
-          hospitalRegistrationNumber: values.hospitalRegistrationNumber,
-          address: values.address,
-      });
+      await signupWithEmail(values.email, values.password, values.displayName, values.role, values);
       toast({
         title: "Registration Successful",
         description: "Please check your email to verify your account.",
@@ -105,21 +106,17 @@ export default function SignupForm() {
   }
 
   const handleNextStep = async () => {
+    // Basic validation for the current step
     const fieldsToValidate: (keyof SignupFormValues)[] = step === 1 
       ? ['role'] 
-      : ['displayName', 'email', 'password', 'confirmPassword'];
+      : ['displayName', 'email'];
+
+    if (step === 2) {
+        // Add role-specific fields to validation
+    }
       
-    if (currentRole === 'doctor' && step === 2) {
-        fieldsToValidate.push('licenseNumber', 'specialization');
-    }
-    if (currentRole === 'pharmacist' && step === 2) {
-        fieldsToValidate.push('pharmacyRegistration');
-    }
-    if (currentRole === 'lab_technician' && step === 2) {
-        fieldsToValidate.push('labAffiliation');
-    }
-    if (currentRole === 'hospital' && step === 2) {
-        fieldsToValidate.push('hospitalRegistrationNumber', 'address');
+    if (step === 3) {
+        fieldsToValidate.push('password', 'confirmPassword');
     }
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -131,6 +128,61 @@ export default function SignupForm() {
   const handlePrevStep = () => {
     setStep(prev => prev - 1);
   };
+
+  const getStepTwoFields = () => {
+      switch(currentRole) {
+          case 'doctor':
+              return (
+                  <>
+                      <FormField control={form.control} name="displayName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Dr. Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><FormControl><Input placeholder="Female" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="nationality" render={({ field }) => (<FormItem><FormLabel>Nationality</FormLabel><FormControl><Input placeholder="Nigerian" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="medicalLicenseNumber" render={({ field }) => (<FormItem><FormLabel>Medical License (MDCN)</FormLabel><FormControl><Input placeholder="MDCN/12345/2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="specialization" render={({ field }) => (<FormItem><FormLabel>Specialization</FormLabel><FormControl><Input placeholder="Cardiology" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="yearsOfExperience" render={({ field }) => (<FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+              )
+          case 'pharmacist':
+               return (
+                  <>
+                      <FormField control={form.control} name="pharmacyName" render={({ field }) => (<FormItem><FormLabel>Pharmacy Name</FormLabel><FormControl><Input placeholder="MediPlus Pharmacy" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Business Email</FormLabel><FormControl><Input type="email" placeholder="contact@mediplus.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="pharmacyAddress" render={({ field }) => (<FormItem><FormLabel>Pharmacy Address</FormLabel><FormControl><Input placeholder="123 Health Way, Lagos" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="pcnLicense" render={({ field }) => (<FormItem><FormLabel>PCN License Number</FormLabel><FormControl><Input placeholder="PCN/REG/12345" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="pharmacistInCharge" render={({ field }) => (<FormItem><FormLabel>Pharmacist in Charge</FormLabel><FormControl><Input placeholder="John Oke" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+              )
+          case 'medical_lab':
+               return (
+                  <>
+                      <FormField control={form.control} name="labName" render={({ field }) => (<FormItem><FormLabel>Medical Lab Name</FormLabel><FormControl><Input placeholder="Wellness Diagnostics" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Business Email</FormLabel><FormControl><Input type="email" placeholder="info@wellnessdx.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="labAddress" render={({ field }) => (<FormItem><FormLabel>Lab Address</FormLabel><FormControl><Input placeholder="456 Test Avenue, Abuja" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="cacCertificate" render={({ field }) => (<FormItem><FormLabel>CAC Registration Number</FormLabel><FormControl><Input placeholder="RC 1234567" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="mlscnLicense" render={({ field }) => (<FormItem><FormLabel>MLSCN License Number</FormLabel><FormControl><Input placeholder="MLSCN/LAB/2024/001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+              )
+          case 'hospital':
+              return (
+                   <>
+                      <FormField control={form.control} name="hospitalName" render={({ field }) => (<FormItem><FormLabel>Hospital Name</FormLabel><FormControl><Input placeholder="St. Nicholas Hospital" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Hospital Email</FormLabel><FormControl><Input type="email" placeholder="admin@stnicholas.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="hospitalAddress" render={({ field }) => (<FormItem><FormLabel>Hospital Address</FormLabel><FormControl><Input placeholder="789 Care Crescent, Port Harcourt" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="hospitalRegistrationNumber" render={({ field }) => (<FormItem><FormLabel>Operating License Number</FormLabel><FormControl><Input placeholder="FMoH/2024/123" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="medicalDirector" render={({ field }) => (<FormItem><FormLabel>Medical Director Name</FormLabel><FormControl><Input placeholder="Dr. Fatima Bello" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+              )
+          default: // Patient
+              return (
+                  <>
+                    <FormField control={form.control} name="displayName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+              )
+      }
+  }
 
   return (
     <Form {...form}>
@@ -180,110 +232,17 @@ export default function SignupForm() {
              )}
             {step === 2 && (
                 <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="displayName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{currentRole === 'hospital' ? 'Hospital Name' : 'Full Name'}</FormLabel>
-                          <FormControl><Input placeholder={currentRole === 'hospital' ? 'General Hospital' : 'Jane Doe'} {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {currentRole === 'doctor' && (
-                        <>
-                            <FormField
-                                control={form.control}
-                                name="licenseNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Medical License Number</FormLabel>
-                                    <FormControl><Input placeholder="ABC12345" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="specialization"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Specialization</FormLabel>
-                                    <FormControl><Input placeholder="Cardiology" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </>
-                    )}
-                    {currentRole === 'pharmacist' && (
-                        <FormField
-                            control={form.control}
-                            name="pharmacyRegistration"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Pharmacy Registration Details</FormLabel>
-                                <FormControl><Input placeholder="Reg #XYZ" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
-                    {currentRole === 'lab_technician' && (
-                         <FormField
-                            control={form.control}
-                            name="labAffiliation"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Laboratory Affiliation</FormLabel>
-                                <FormControl><Input placeholder="General Hospital Labs" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
-                    {currentRole === 'hospital' && (
-                        <>
-                            <FormField
-                                control={form.control}
-                                name="hospitalRegistrationNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Hospital Registration Number</FormLabel>
-                                    <FormControl><Input placeholder="HSP-REG-12345" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="address"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Address</FormLabel>
-                                    <FormControl><Input placeholder="123 Health St, Medical City" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </>
-                    )}
+                    <h3 className="text-lg font-semibold font-headline">
+                        Step 2: Provide Your Details
+                    </h3>
+                    {getStepTwoFields()}
                 </div>
             )}
              {step === 3 && (
                 <div className="space-y-4">
+                     <h3 className="text-lg font-semibold font-headline">
+                        Step 3: Secure Your Account
+                    </h3>
                     <FormField
                     control={form.control}
                     name="password"

@@ -15,7 +15,7 @@ import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
-type Role = 'patient' | 'doctor' | 'pharmacist' | 'lab_technician' | 'admin' | 'hospital';
+type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'admin' | 'hospital';
 
 interface AuthUser extends User {
     role?: Role;
@@ -63,14 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
+        const finalDisplayName = role === 'patient' 
+            ? displayName 
+            : additionalData.hospitalName || additionalData.pharmacyName || additionalData.labName || displayName;
+
         // Update Firebase Auth profile
-        await updateProfile(firebaseUser, { displayName });
+        await updateProfile(firebaseUser, { displayName: finalDisplayName });
 
         // Create user document in 'users' collection
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         await setDoc(userDocRef, {
             email: firebaseUser.email,
-            displayName: displayName,
+            displayName: finalDisplayName,
             photoURL: firebaseUser.photoURL,
             provider: firebaseUser.providerId,
             createdAt: new Date(),
@@ -79,25 +83,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Create profile document in 'profiles' collection
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
-        let profileData = {};
+        let profileData: { [key: string]: any } = {
+            isVerified: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
         switch (role) {
             case 'patient':
-                profileData = { patientData: {} };
+                profileData.patientData = {
+                    fullName: displayName,
+                };
                 break;
             case 'doctor':
-                profileData = { doctorData: { licenseNumber: additionalData.licenseNumber, specialization: additionalData.specialization, isVerified: false } };
+                profileData.doctorData = { 
+                    fullName: displayName,
+                    gender: additionalData.gender,
+                    dob: additionalData.dob,
+                    nationality: additionalData.nationality,
+                    medicalLicenseNumber: additionalData.medicalLicenseNumber,
+                    specialization: additionalData.specialization, 
+                    yearsOfExperience: additionalData.yearsOfExperience,
+                };
                 break;
             case 'pharmacist':
-                profileData = { pharmacistData: { pharmacyRegistration: additionalData.pharmacyRegistration }};
+                profileData.pharmacistData = {
+                    pharmacyName: additionalData.pharmacyName,
+                    address: additionalData.pharmacyAddress,
+                    pcnLicense: additionalData.pcnLicense,
+                    pharmacistInCharge: additionalData.pharmacistInCharge,
+                };
                 break;
-            case 'lab_technician':
-                profileData = { labTechnicianData: { labAffiliation: additionalData.labAffiliation }};
+            case 'medical_lab':
+                profileData.medicalLabData = {
+                    labName: additionalData.labName,
+                    address: additionalData.labAddress,
+                    cacRegistration: additionalData.cacCertificate,
+                    mlscnLicense: additionalData.mlscnLicense,
+                };
                 break;
             case 'hospital':
-                profileData = { hospitalData: { registrationNumber: additionalData.hospitalRegistrationNumber, address: additionalData.address, isVerified: false }};
+                profileData.hospitalData = {
+                    hospitalName: additionalData.hospitalName,
+                    address: additionalData.hospitalAddress,
+                    operatingLicense: additionalData.hospitalRegistrationNumber,
+                    medicalDirector: additionalData.medicalDirector,
+                };
                 break;
         }
-        await setDoc(profileDocRef, profileData);
+        await setDoc(profileDocRef, profileData, { merge: true });
         
         router.push('/'); 
         return userCredential;
