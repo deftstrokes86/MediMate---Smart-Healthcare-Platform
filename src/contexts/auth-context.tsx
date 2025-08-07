@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
 
@@ -21,7 +21,7 @@ interface UserProfile {
     isVerified?: boolean;
     patientData?: {
         isMinor: boolean;
-        // other patient data
+        childProfile?: any;
     };
     // other profile data for different roles
 }
@@ -48,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [roleVerified, setRoleVerified] = useState(false);
     const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -65,49 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     
                     const authUser: AuthUser = { ...user, role, profile };
                     setUser(authUser);
-                    
-                    const isAdmin = role === 'admin' || role === 'super_admin';
-                    const isDoctor = role === 'doctor';
-                    const isMedicalLab = role === 'medical_lab';
-                    const isPharmacist = role === 'pharmacist';
-                    const isHospital = role === 'hospital';
-                    const isPatient = role === 'patient';
-
-                    const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password';
-
-                    if (isAuthPage) {
-                         if (isAdmin) {
-                            router.push('/admin/dashboard');
-                         } else if (isDoctor) {
-                             router.push('/doctor/dashboard');
-                         } else if (isMedicalLab) {
-                            router.push('/lab/dashboard');
-                         } else if (isPharmacist) {
-                            router.push('/pharmacy/dashboard');
-                         } else if (isHospital) {
-                            router.push('/hospital/dashboard');
-                         } else if (isPatient) {
-                            router.push('/dashboard'); 
-                         } else {
-                            router.push('/');
-                         }
-                    }
-
                 } catch(error) {
                     console.error("Error getting user token or profile:", error);
-                    setUser(user); 
+                    setUser(user); // Set user even if role fetching fails
                 } finally {
                     setRoleVerified(true);
                 }
             } else {
                 setUser(null);
-                setRoleVerified(true);
+                setRoleVerified(true); // User is confirmed to be logged out
             }
              setLoading(false); 
         });
 
         return () => unsubscribe();
-    }, [pathname, router]);
+    }, []);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
