@@ -73,8 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const isHospital = role === 'hospital';
                     const isPatient = role === 'patient';
 
+                    const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password';
 
-                    if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/' || pathname === '') {
+                    if (isAuthPage) {
                          if (isAdmin) {
                             router.push('/admin/dashboard');
                          } else if (isDoctor) {
@@ -88,9 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                          } else if (isPatient) {
                             router.push('/dashboard'); 
                          } else {
-                            // Freshly signed up users might not have a role claim yet.
-                            // We stay on the page and let the UI handle next steps,
-                            // like showing a "Check your email for verification" message.
+                            router.push('/');
                          }
                     }
 
