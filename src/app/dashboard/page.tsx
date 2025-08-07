@@ -3,16 +3,29 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar, Pill, FlaskConical, Bell, CheckCircle } from "lucide-react";
+import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby } from "lucide-react";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
+    const isGuardian = user?.profile?.patientData?.isMinor === true;
+    const patientName = isGuardian 
+        ? user?.profile?.patientData?.childProfile?.fullName?.split(' ')[0] 
+        : user?.displayName?.split(' ')[0];
+
+    const welcomeMessage = isGuardian 
+        ? `Hi ${user?.displayName?.split(' ')[0]}, here's what's next for ${patientName}.`
+        : `Hi ${patientName || 'User'}, here’s what’s next.`;
+
+    const subMessage = isGuardian 
+        ? "Your child's personal health overview."
+        : "Your personal health overview.";
+    
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold font-headline">Hi {user?.displayName?.split(' ')[0] || 'User'}, here’s what’s next.</h1>
-                <p className="text-muted-foreground">Your personal health overview.</p>
+                <h1 className="text-3xl font-bold font-headline">{welcomeMessage}</h1>
+                <p className="text-muted-foreground">{subMessage}</p>
             </div>
             
              <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 w-fit">
@@ -21,8 +34,8 @@ export default function PatientDashboardPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <DashboardCard 
-                    icon={<Calendar className="text-primary" />}
+                 <DashboardCard 
+                    icon={isGuardian ? <Baby className="text-primary" /> : <Calendar className="text-primary" />}
                     title="Upcoming Appointment"
                     value="Dr. Adebayo - Tomorrow, 10:00 AM"
                     description="Cardiology Check-up"

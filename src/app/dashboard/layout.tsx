@@ -31,7 +31,9 @@ import {
     Shield,
     HelpCircle,
     LogOut, 
-    Stethoscope
+    Stethoscope,
+    Baby,
+    BookCopy
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +44,7 @@ function PatientLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isGuardian = user?.profile?.patientData?.isMinor === true;
 
   React.useEffect(() => {
     if (!loading && (!user || user.role !== "patient")) {
@@ -57,7 +60,7 @@ function PatientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navItems = [
+  const adultNavItems = [
     { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
     { href: "/dashboard/history", label: "Medical History", icon: <History /> },
     { href: "/symptom-checker", label: "Consult a Doctor", icon: <Bot /> },
@@ -71,6 +74,22 @@ function PatientLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard/settings", label: "Privacy & Settings", icon: <Shield /> },
     { href: "/dashboard/support", label: "Support", icon: <HelpCircle /> },
   ];
+
+  const guardianNavItems = [
+    { href: "/dashboard", label: "Child Dashboard", icon: <LayoutDashboard /> },
+    { href: "/dashboard/history", label: "Medical History", icon: <History /> },
+    { href: "/symptom-checker", label: "Consult for Child", icon: <Bot /> },
+    { href: "/dashboard/prescriptions", label: "Prescriptions", icon: <Pill /> },
+    { href: "/dashboard/appointments", label: "Appointments", icon: <Calendar /> },
+    { href: "/dashboard/referrals", label: "Referrals", icon: <HandHeart /> },
+    { href: "/dashboard/child-profile", label: "Child Profile", icon: <Baby /> },
+    { href: "/dashboard/parental-consent", label: "Parental Consent", icon: <BookCopy /> },
+    { href: "/dashboard/billing", label: "Billing & Payments", icon: <CreditCard /> },
+    { href: "/dashboard/privacy-controls", label: "Privacy Controls", icon: <Shield /> },
+    { href: "/dashboard/support", label: "Support", icon: <HelpCircle /> },
+  ]
+
+  const navItems = isGuardian ? guardianNavItems : adultNavItems;
 
   return (
     <SidebarProvider>
@@ -103,7 +122,7 @@ function PatientLayout({ children }: { children: React.ReactNode }) {
                 </Avatar>
                 <div className="flex flex-col">
                     <span className="text-sm font-semibold">{user.displayName || 'Patient'}</span>
-                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                    <span className="text-xs text-muted-foreground">{isGuardian ? "Guardian Account" : user.email}</span>
                 </div>
             </div>
              <SidebarMenu>
