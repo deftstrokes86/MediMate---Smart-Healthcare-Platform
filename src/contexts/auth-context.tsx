@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const isMedicalLab = role === 'medical_lab';
                     const isPharmacist = role === 'pharmacist';
                     const isHospital = role === 'hospital';
+                    const isPatient = role === 'patient';
+
 
                     // If on a public page, redirect to the correct dashboard after login
                     if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/') {
@@ -69,9 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             router.push('/pharmacy/dashboard');
                          } else if (isHospital) {
                             router.push('/hospital/dashboard');
+                         } else if (isPatient) {
+                            router.push('/dashboard'); 
                          } else {
-                            // For patients or other roles, stay on homepage or redirect to their dashboard
-                            router.push('/'); 
+                            router.push('/');
                          }
                     } else if (isAdmin && !pathname.startsWith('/admin')) {
                         // If an admin is not in the admin section, redirect them
@@ -88,8 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else if (isHospital && !pathname.startsWith('/hospital')) {
                         // If a hospital user is not in the hospital section, redirect them
                         router.push('/hospital/dashboard');
+                    } else if (isPatient && !pathname.startsWith('/dashboard')) {
+                        // This case is tricky, a patient might be on other public pages
+                        // We will avoid redirecting them if they are on other allowed pages.
                     }
-                    else if (!isAdmin && !isDoctor && !isMedicalLab && !isPharmacist && !isHospital && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab') || pathname.startsWith('/pharmacy') || pathname.startsWith('/hospital'))) {
+                    else if (!isAdmin && !isDoctor && !isMedicalLab && !isPharmacist && !isHospital && !isPatient && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab') || pathname.startsWith('/pharmacy') || pathname.startsWith('/hospital') || pathname.startsWith('/dashboard'))) {
                        // If a non-privileged user tries to access a protected area, send them home
                         router.push('/');
                     }

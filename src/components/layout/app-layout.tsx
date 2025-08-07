@@ -22,9 +22,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isLabRoute = pathname.startsWith('/lab');
   const isPharmacyRoute = pathname.startsWith('/pharmacy');
   const isHospitalRoute = pathname.startsWith('/hospital');
+  const isPatientDashboard = pathname.startsWith('/dashboard');
   const isInviteRoute = pathname.includes('/super-admin-portal/invite-only');
 
-  const showHeaderFooter = !noHeaderFooterRoutes.includes(pathname) && !isInviteRoute && !isAdminRoute && !isDoctorRoute && !isLabRoute && !isPharmacyRoute && !isHospitalRoute;
+  const showHeaderFooter = !noHeaderFooterRoutes.includes(pathname) && !isInviteRoute && !isAdminRoute && !isDoctorRoute && !isLabRoute && !isPharmacyRoute && !isHospitalRoute && !isPatientDashboard;
 
   // Wait for both initial user loading and role verification to complete
   if (loading || !roleVerified) {
