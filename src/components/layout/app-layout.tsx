@@ -31,6 +31,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isDashboardRoute = isAdminRoute || isDoctorRoute || isLabRoute || isPharmacyRoute || isHospitalRoute || isPatientDashboard;
 
+  React.useEffect(() => {
+    if (!loading && roleVerified && user) {
+        const isAdmin = user.role === "admin" || user.role === "super_admin";
+        const isDoctor = user.role === "doctor";
+        const isMedicalLab = user.role === "medical_lab";
+        const isPharmacist = user.role === "pharmacist";
+        const isHospital = user.role === "hospital";
+        const isPatient = user.role === "patient";
+
+        if (isAuthPage) {
+            if (isAdmin) router.replace('/admin/dashboard');
+            else if (isDoctor) router.replace('/doctor/dashboard');
+            else if (isMedicalLab) router.replace('/lab/dashboard');
+            else if (isPharmacist) router.replace('/pharmacy/dashboard');
+            else if (isHospital) router.replace('/hospital/dashboard');
+            else if (isPatient) router.replace('/dashboard');
+            else router.replace('/');
+        }
+    }
+  }, [user, loading, roleVerified, pathname, router, isAuthPage]);
+
   // Wait for both initial user loading and role verification to complete
   if (loading || !roleVerified) {
     return (
@@ -39,29 +60,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  // --- Start of new redirect logic ---
-  if (roleVerified && user) {
-    const isAdmin = user.role === "admin" || user.role === "super_admin";
-    const isDoctor = user.role === "doctor";
-    const isMedicalLab = user.role === "medical_lab";
-    const isPharmacist = user.role === "pharmacist";
-    const isHospital = user.role === "hospital";
-    const isPatient = user.role === "patient";
-
-    if (isAuthPage) {
-      if (isAdmin) router.replace('/admin/dashboard');
-      else if (isDoctor) router.replace('/doctor/dashboard');
-      else if (isMedicalLab) router.replace('/lab/dashboard');
-      else if (isPharmacist) router.replace('/pharmacy/dashboard');
-      else if (isHospital) router.replace('/hospital/dashboard');
-      else if (isPatient) router.replace('/dashboard');
-      else router.replace('/');
-      return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
-    }
-  }
-  // --- End of new redirect logic ---
-
 
   const showHeaderFooter = !isAuthPage && !isInviteRoute && !isDashboardRoute;
 
