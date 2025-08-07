@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const isDoctor = role === 'doctor';
                     const isMedicalLab = role === 'medical_lab';
                     const isPharmacist = role === 'pharmacist';
+                    const isHospital = role === 'hospital';
 
                     // If on a public page, redirect to the correct dashboard after login
                     if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/') {
@@ -66,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             router.push('/lab/dashboard');
                          } else if (isPharmacist) {
                             router.push('/pharmacy/dashboard');
+                         } else if (isHospital) {
+                            router.push('/hospital/dashboard');
                          } else {
                             // For patients or other roles, stay on homepage or redirect to their dashboard
                             router.push('/'); 
@@ -82,8 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else if (isPharmacist && !pathname.startsWith('/pharmacy')) {
                         // If a pharmacist is not in the pharmacy section, redirect them
                         router.push('/pharmacy/dashboard');
+                    } else if (isHospital && !pathname.startsWith('/hospital')) {
+                        // If a hospital user is not in the hospital section, redirect them
+                        router.push('/hospital/dashboard');
                     }
-                    else if (!isAdmin && !isDoctor && !isMedicalLab && !isPharmacist && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab') || pathname.startsWith('/pharmacy'))) {
+                    else if (!isAdmin && !isDoctor && !isMedicalLab && !isPharmacist && !isHospital && (pathname.startsWith('/admin') || pathname.startsWith('/doctor') || pathname.startsWith('/lab') || pathname.startsWith('/pharmacy') || pathname.startsWith('/hospital'))) {
                        // If a non-privileged user tries to access a protected area, send them home
                         router.push('/');
                     }
@@ -183,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     fullName: additionalData.doctorFullName,
                     gender: additionalData.doctorGender,
                     dob: additionalData.doctorDob,
-                    nationality: additionalData.doctorNationality,
+                    nationality: additionalData.nationality,
                     phone: additionalData.doctorPhone,
                     address: additionalData.doctorAddress,
                     medicalLicenseNumber: additionalData.medicalLicenseNumber,
