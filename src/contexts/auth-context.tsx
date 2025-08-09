@@ -9,10 +9,11 @@ import {
     signInWithEmailAndPassword,
     signOut,
     sendPasswordResetEmail,
-    updateProfile
+    updateProfile,
+    UserCredential
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { usePathname, useRouter } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
@@ -34,9 +35,8 @@ interface AuthUser extends User {
 interface AuthContextType {
     user: AuthUser | null;
     loading: boolean;
-    roleVerified: boolean;
-    signupWithEmail: (email: string, password: string, displayName: string, role: Role, additionalData?: any) => Promise<any>;
-    loginWithEmail: (email: string, password: string) => Promise<any>;
+    signupWithEmail: (email: string, password: string, displayName: string, role: Role, additionalData?: any) => Promise<UserCredential>;
+    loginWithEmail: (email: string, password: string) => Promise<UserCredential>;
     logout: () => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
 }
@@ -46,14 +46,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
-    const [roleVerified, setRoleVerified] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // Force refresh to get latest claims
+                // Force a token refresh to get the latest custom claims.
                 const idTokenResult = await firebaseUser.getIdTokenResult(true);
                 const role = (idTokenResult.claims.role as Role) || undefined;
                 
@@ -63,31 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 
                 const authUser: AuthUser = { ...firebaseUser, role, profile };
                 setUser(authUser);
-                setRoleVerified(true);
                 setLoading(false);
 
                 // --- REDIRECT LOGIC ---
-                const isAdmin = role === "admin" || role === "super_admin";
-                const isDoctor = role === "doctor";
-                const isMedicalLab = role === "medical_lab";
-                const isPharmacist = role === "pharmacist";
-                const isHospital = role === "hospital";
-                const isPatient = role === "patient";
-
                 const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
 
                 if (isAuthPage) {
-                    if (isAdmin) router.replace('/admin/dashboard');
-                    else if (isDoctor) router.replace('/doctor/dashboard');
-                    else if (isMedicalLab) router.replace('/lab/dashboard');
-                    else if (isPharmacist) router.replace('/pharmacy/dashboard');
-                    else if (isHospital) router.replace('/hospital/dashboard');
-                    else if (isPatient) router.replace('/dashboard');
+                    if (role === "admin" || role === "super_admin") router.replace('/admin/dashboard');
+                    else if (role === "doctor") router.replace('/doctor/dashboard');
+                    else if (role === "medical_lab") router.replace('/lab/dashboard');
+                    else if (role === "pharmacist") router.replace('/pharmacy/dashboard');
+                    else if (role === "hospital") router.replace('/hospital/dashboard');
+                    else if (role === "patient") router.replace('/dashboard');
                     else router.replace('/');
                 }
             } else {
                 setUser(null);
-                setRoleVerified(true);
                 setLoading(false);
             }
         });
@@ -120,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
-            isVerified: false,
+            isVerified: role === 'super_admin' || (role === 'patient' && additionalData.patientType !== 'minor'),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -128,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         switch (role) {
             case 'patient':
                 if (additionalData.patientType === 'minor') {
+                    profileData.isVerified = false;
                     profileData.patientData = {
                         isMinor: true,
                         childProfile: {
@@ -166,7 +157,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         allergies: additionalData.allergies,
                         chronicConditions: additionalData.chronicConditions,
                     };
-                     profileData.isVerified = true;
                 }
                 break;
             case 'doctor':
@@ -210,11 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
              case 'super_admin':
-                profileData = {
-                    ...profileData,
-                    isVerified: true, 
-                    phone: additionalData.phone,
-                };
+                profileData.phone = additionalData.phone;
                 break;
         }
         await setDoc(profileDocRef, profileData, { merge: true });
@@ -238,14 +224,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const value = {
         user,
         loading,
-        roleVerified,
         signupWithEmail,
         loginWithEmail,
         logout,
         sendPasswordReset
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
