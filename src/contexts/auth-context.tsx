@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
 
@@ -48,37 +48,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [roleVerified, setRoleVerified] = useState(false);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setLoading(true); 
-            setRoleVerified(false);
-            if (user) {
-                try {
-                    const idTokenResult = await user.getIdTokenResult(true);
-                    const role = idTokenResult.claims.role as Role | undefined;
-                    
-                    const profileDocRef = doc(db, 'profiles', user.uid);
-                    const profileDoc = await getDoc(profileDocRef);
-                    const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
-                    
-                    const authUser: AuthUser = { ...user, role, profile };
-                    setUser(authUser);
-                } catch(error) {
-                    console.error("Error getting user token or profile:", error);
-                    setUser(user); // Set user even if role fetching fails
-                } finally {
-                    setRoleVerified(true);
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // Force refresh to get latest claims
+                const idTokenResult = await firebaseUser.getIdTokenResult(true);
+                const role = (idTokenResult.claims.role as Role) || undefined;
+                
+                const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
+                const profileDoc = await getDoc(profileDocRef);
+                const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
+                
+                const authUser: AuthUser = { ...firebaseUser, role, profile };
+                setUser(authUser);
+                setRoleVerified(true);
+                setLoading(false);
+
+                // --- REDIRECT LOGIC ---
+                const isAdmin = role === "admin" || role === "super_admin";
+                const isDoctor = role === "doctor";
+                const isMedicalLab = role === "medical_lab";
+                const isPharmacist = role === "pharmacist";
+                const isHospital = role === "hospital";
+                const isPatient = role === "patient";
+
+                const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+
+                if (isAuthPage) {
+                    if (isAdmin) router.replace('/admin/dashboard');
+                    else if (isDoctor) router.replace('/doctor/dashboard');
+                    else if (isMedicalLab) router.replace('/lab/dashboard');
+                    else if (isPharmacist) router.replace('/pharmacy/dashboard');
+                    else if (isHospital) router.replace('/hospital/dashboard');
+                    else if (isPatient) router.replace('/dashboard');
+                    else router.replace('/');
                 }
             } else {
                 setUser(null);
-                setRoleVerified(true); // User is confirmed to be logged out
+                setRoleVerified(true);
+                setLoading(false);
             }
-             setLoading(false); 
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [router, pathname]);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
