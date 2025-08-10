@@ -14,7 +14,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
 
@@ -47,43 +47,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
+        console.log('AuthProvider mounted. Setting up onAuthStateChanged listener.');
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            console.log('onAuthStateChanged event fired.');
             if (firebaseUser) {
-                // Force a token refresh to get the latest custom claims.
-                const idTokenResult = await firebaseUser.getIdTokenResult(true);
-                const role = (idTokenResult.claims.role as Role) || undefined;
-                
-                const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
-                const profileDoc = await getDoc(profileDocRef);
-                const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
-                
-                const authUser: AuthUser = { ...firebaseUser, role, profile };
-                setUser(authUser);
-                setLoading(false);
+                console.log(`User detected: ${firebaseUser.uid}. Forcing token refresh...`);
+                try {
+                    const idTokenResult = await firebaseUser.getIdTokenResult(true);
+                    console.log('Token refreshed. Claims found:', idTokenResult.claims);
+                    const role = (idTokenResult.claims.role as Role) || 'patient';
+                    
+                    const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
+                    const profileDoc = await getDoc(profileDocRef);
+                    const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
+                    
+                    const authUser: AuthUser = { ...firebaseUser, role, profile };
+                    setUser(authUser);
 
-                // --- REDIRECT LOGIC ---
-                const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+                    console.log(`User role identified as: '${role}'. Preparing to redirect.`);
+                    
+                    const currentPath = window.location.pathname;
+                    
+                    if (role === 'admin' || role === 'super_admin') {
+                        if (currentPath !== '/admin/dashboard') {
+                            console.log("Redirecting to /admin/dashboard...");
+                            router.replace('/admin/dashboard');
+                        }
+                    } else if (role === 'doctor') {
+                         if (currentPath !== '/doctor/dashboard') {
+                            console.log("Redirecting to /doctor/dashboard...");
+                            router.replace('/doctor/dashboard');
+                         }
+                    } else if (role === 'medical_lab') {
+                        if (currentPath !== '/lab/dashboard') {
+                            console.log("Redirecting to /lab/dashboard...");
+                            router.replace('/lab/dashboard');
+                        }
+                    } else if (role === 'pharmacist') {
+                        if (currentPath !== '/pharmacy/dashboard') {
+                            console.log("Redirecting to /pharmacy/dashboard...");
+                            router.replace('/pharmacy/dashboard');
+                        }
+                    } else if (role === 'hospital') {
+                        if (currentPath !== '/hospital/dashboard') {
+                            console.log("Redirecting to /hospital/dashboard...");
+                            router.replace('/hospital/dashboard');
+                        }
+                    } else if (role === 'patient') {
+                        if (currentPath !== '/dashboard') {
+                            console.log("Redirecting to /dashboard...");
+                            router.replace('/dashboard');
+                        }
+                    } else {
+                        console.log("Already on the correct page or no specific redirect rule matched.");
+                    }
 
-                if (isAuthPage) {
-                    if (role === "admin" || role === "super_admin") router.replace('/admin/dashboard');
-                    else if (role === "doctor") router.replace('/doctor/dashboard');
-                    else if (role === "medical_lab") router.replace('/lab/dashboard');
-                    else if (role === "pharmacist") router.replace('/pharmacy/dashboard');
-                    else if (role === "hospital") router.replace('/hospital/dashboard');
-                    else if (role === "patient") router.replace('/dashboard');
-                    else router.replace('/');
+                } catch (error) {
+                    console.error("Error refreshing token or processing claims:", error);
+                    setUser(null);
                 }
             } else {
+                console.log('No user detected. Setting user state to null.');
                 setUser(null);
-                setLoading(false);
             }
+            setLoading(false);
+            console.log('Auth loading state set to false.');
         });
 
-        return () => unsubscribe();
-    }, [router, pathname]);
+        return () => {
+            console.log('AuthProvider unmounting. Unsubscribing from onAuthStateChanged.');
+            unsubscribe();
+        };
+    }, [router]);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -230,7 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendPasswordReset
     };
 
-    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
