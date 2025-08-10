@@ -21,6 +21,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from 'next/navigation';
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 function MedicalLabLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
@@ -50,8 +51,7 @@ function MedicalLabLayout({ children }: { children: React.ReactNode }) {
     { href: "/lab/support", label: "Support", icon: <MessageSquare /> },
   ];
 
-  return (
-    <SidebarProvider>
+  const sidebarContent = (
       <Sidebar>
         <SidebarHeader>
              <div className="flex items-center gap-2">
@@ -94,9 +94,22 @@ function MedicalLabLayout({ children }: { children: React.ReactNode }) {
              </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
+  );
+
+  return (
+    <SidebarProvider>
+      {sidebarContent}
       <SidebarInset>
         <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-            <SidebarTrigger className="md:hidden" />
+            <Sheet>
+              <SheetTrigger asChild>
+                <SidebarTrigger className="md:hidden" />
+              </SheetTrigger>
+              <SheetContent side="left" className="pr-0">
+                  <SheetTitle className="sr-only">Lab Menu</SheetTitle>
+                  {sidebarContent}
+              </SheetContent>
+            </Sheet>
             <div className="flex-1" />
             <Button variant="ghost" size="icon" className="rounded-full">
                 <Users className="h-5 w-5" />
