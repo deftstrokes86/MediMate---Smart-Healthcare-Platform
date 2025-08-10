@@ -72,6 +72,69 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/settings", label: "System Settings", icon: <FolderCog /> },
   ];
 
+  const mobileSidebarContent = (
+    <Sidebar>
+      <SidebarHeader>
+          <div className="flex items-center gap-2">
+              <Stethoscope className="h-8 w-8 text-primary" />
+              <span className="text-xl font-bold font-headline">MediMate</span>
+          </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          {navItems.map((item, index) => (
+            item.group ? (
+              <SidebarGroup key={index}>
+                <SidebarGroupLabel className="flex items-center gap-2">
+                  {item.icon} {item.group}
+                </SidebarGroupLabel>
+                {item.items.map(subItem => (
+                  <SidebarMenuItem key={subItem.href}>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith(subItem.href)}>
+                          <Link href={subItem.href}>
+                              {subItem.icon && <div className="w-4 h-4" />} 
+                              <span>{subItem.label}</span>
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarGroup>
+            ) : (
+              <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+                      <Link href={item.href}>
+                          {item.icon}
+                          <span>{item.label}</span>
+                      </Link>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          ))}
+        </SidebarMenu>
+      </SidebarContent>
+      <SidebarFooter>
+          <div className="flex items-center gap-2 p-2">
+              <Avatar>
+                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Admin'} />
+                  <AvatarFallback>{(user.displayName || 'A').charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                  <span className="text-sm font-semibold">{user.displayName || 'Admin'}</span>
+                  <span className="text-xs text-muted-foreground">{user.email}</span>
+              </div>
+          </div>
+          <SidebarMenu>
+              <SidebarMenuItem>
+                  <SidebarMenuButton onClick={logout}>
+                      <LogOut />
+                      <span>Log Out</span>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
+          </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -142,66 +205,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
                   <SheetTitle className="sr-only">Admin Menu</SheetTitle>
-                  <Sidebar>
-                    <SidebarHeader>
-                        <div className="flex items-center gap-2">
-                            <Stethoscope className="h-8 w-8 text-primary" />
-                            <span className="text-xl font-bold font-headline">MediMate</span>
-                        </div>
-                    </SidebarHeader>
-                    <SidebarContent>
-                      <SidebarMenu>
-                        {navItems.map((item, index) => (
-                          item.group ? (
-                            <SidebarGroup key={index}>
-                              <SidebarGroupLabel className="flex items-center gap-2">
-                                {item.icon} {item.group}
-                              </SidebarGroupLabel>
-                              {item.items.map(subItem => (
-                                <SidebarMenuItem key={subItem.href}>
-                                    <SidebarMenuButton asChild isActive={pathname.startsWith(subItem.href)}>
-                                        <Link href={subItem.href}>
-                                            {subItem.icon && <div className="w-4 h-4" />} 
-                                            <span>{subItem.label}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                              ))}
-                            </SidebarGroup>
-                          ) : (
-                            <SidebarMenuItem key={item.href}>
-                                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
-                                    <Link href={item.href}>
-                                        {item.icon}
-                                        <span>{item.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          )
-                        ))}
-                      </SidebarMenu>
-                    </SidebarContent>
-                    <SidebarFooter>
-                        <div className="flex items-center gap-2 p-2">
-                            <Avatar>
-                                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Admin'} />
-                                <AvatarFallback>{(user.displayName || 'A').charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-semibold">{user.displayName || 'Admin'}</span>
-                                <span className="text-xs text-muted-foreground">{user.email}</span>
-                            </div>
-                        </div>
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton onClick={logout}>
-                                    <LogOut />
-                                    <span>Log Out</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarFooter>
-                  </Sidebar>
+                  {mobileSidebarContent}
             </SheetContent>
           </Sheet>
             <div className="relative flex-1">

@@ -100,7 +100,48 @@ function DoctorLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      {sidebarContent}
+      <Sidebar>
+        <SidebarHeader>
+             <div className="flex items-center gap-2">
+                <Stethoscope className="h-8 w-8 text-primary" />
+                <span className="text-xl font-bold font-headline">MediMate</span>
+             </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            {navItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+                  <Link href={item.href}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <div className="flex items-center gap-2 p-2">
+                 <Avatar>
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Doctor'} />
+                    <AvatarFallback>{(user.displayName || 'D').charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                    <span className="text-sm font-semibold">{user.displayName || 'Doctor'}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                </div>
+            </div>
+             <SidebarMenu>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton onClick={logout}>
+                        <LogOut />
+                        <span>Log Out</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+             </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <Sheet>
