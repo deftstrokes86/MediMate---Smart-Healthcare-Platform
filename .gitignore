@@ -1,37 +1,30 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+
+# Environments
+.env
+.env*.local
+
+# Dependencies
+/node_modules
+/frontend/node_modules
+/functions/node_modules
 
 # Firebase
-.firebase
-*.secret
-*.env
-firebase-debug.log
-firebase-debug.*.log
-service-account-key.json
+.firebase/
+storage-debug.log
+firestore-debug.log
+ui-debug.log
 
-# Local .env files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env
+# Build outputs
+/frontend/.next/
+/functions/lib/
 
-# node_modules
-node_modules
+# Test files
+/storage-test-files/
 
-# Next.js build output
-.next
-out
+# IDE config
+.idea/
+.vscode/
 
-# Other
-coverage
-dist
-build
+# OS files
 .DS_Store
-*.pem
+Thumbs.db
