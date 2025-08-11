@@ -11,6 +11,9 @@
       "region": "us-central1"
     }
   },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "emulators": {
     "auth": {
       "port": 9099
@@ -43,4 +46,3 @@
     }
   ]
 }
-

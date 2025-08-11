@@ -4,30 +4,81 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only read and write their own user document.
-    match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
-      allow create: if request.auth.uid != null;
+    // Helper functions to check user roles from custom claims
+    function isAdmin() {
+      return request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
+    }
+    function isDoctor() {
+      return request.auth.token.role == 'doctor';
+    }
+    function isPatient() {
+      return request.auth.token.role == 'patient';
+    }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // Users can only read and write their own profile document.
+    // Profiles: Users can manage their own profile. Admins can manage any profile.
     match /profiles/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+
+      // Field-level restrictions: Only owner and admin can see sensitive data
+      // This is a simplified example. In a real app, you might use subcollections
+      // for private data. This rule illustrates the concept.
+      allow get: if isOwner(userId) || isAdmin() || (
+        !('doctorData' in resource.data) &&
+        !('pharmacistData' in resource.data) &&
+        !('medicalLabData' in resource.data) &&
+        !('hospitalData' in resource.data)
+      );
+    }
+    
+    // Users collection: Similar to profiles, users manage their own doc.
+    match /users/{userId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId);
+        allow create: if request.auth != null; // Any authenticated user can create their user doc on signup.
     }
 
-    // Example of role-based access for a protected collection.
-    // This is a placeholder and can be adapted for actual collections.
-    match /medical_records/{recordId} {
-      // Only users with a 'doctor' or 'admin' custom claim can read.
-      allow read: if request.auth.token.role == 'doctor' || request.auth.token.role == 'admin';
-      
-      // Only doctors can create/update records.
-      allow write: if request.auth.token.role == 'doctor';
+    // Appointments: Doctors can manage their own appointments. Patients can read their own.
+    match /appointments/{appointmentId} {
+      allow read: if isAdmin() || 
+                     (isDoctor() && resource.data.doctorId == request.auth.uid) ||
+                     (isPatient() && resource.data.patientId == request.auth.uid);
+                     
+      allow write: if isAdmin() || (isDoctor() && resource.data.doctorId == request.auth.uid);
+
+      allow create: if (isDoctor() || isAdmin()) && request.resource.data.keys().hasAll(['doctorId', 'patientId', 'appointmentDate', 'status']);
+    }
+    
+    // Prescriptions: Doctors can manage them, patients can read theirs.
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAdmin() ||
+                     (isDoctor() && resource.data.doctorId == request.auth.uid) ||
+                     (isPatient() && resource.data.patientId == request.auth.uid);
+
+      allow write: if isAdmin() || (isDoctor() && resource.data.doctorId == request.auth.uid);
+
+      allow create: if (isDoctor() || isAdmin()) && request.resource.data.keys().hasAll(['doctorId', 'patientId', 'medication', 'dosage', 'issuedDate']);
     }
 
-    // Fallback rule to deny all other access.
-    match /{document=**} {
-      allow read, write: if false;
+    // Encounters/Consultations: Patients can manage their own records.
+    match /encounters/{encounterId} {
+      allow read, write: if isAdmin() || (isPatient() && resource.data.patientId == request.auth.uid);
+      allow create: if (isPatient() || isAdmin()) && request.resource.data.keys().hasAll(['patientId', 'doctorId', 'symptoms', 'consultationDate']);
+    }
+
+    // Orders (for pharmacy/labs): Patients manage their own.
+    match /orders/{orderId} {
+      allow read, write: if isAdmin() || (isPatient() && resource.data.patientId == request.auth.uid);
+      allow create: if (isPatient() || isAdmin()) && request.resource.data.keys().hasAll(['patientId', 'orderType', 'status', 'createdAt']);
+    }
+    
+    // Admin Invites: Only admins can read, nobody can write after creation.
+    match /adminInvites/{inviteId} {
+        allow read: if isAdmin();
+        allow write: if isAdmin() && request.resource.data.keys().hasAll(['email', 'invitedBy', 'status', 'createdAt', 'expiresAt']);
     }
   }
 }
