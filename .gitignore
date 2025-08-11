@@ -1,30 +1,37 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Environments
-.env
-.env*.local
-
-# Dependencies
-/node_modules
+# dependencies
+node_modules
 /frontend/node_modules
 /functions/node_modules
 
-# Firebase
-.firebase/
-storage-debug.log
-firestore-debug.log
-ui-debug.log
+# build output
+/frontend/.next
+/frontend/out
+/functions/lib
 
-# Build outputs
-/frontend/.next/
-/functions/lib/
-
-# Test files
-/storage-test-files/
-
-# IDE config
-.idea/
-.vscode/
-
-# OS files
+# misc
 .DS_Store
-Thumbs.db
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# vercel
+.vercel
+
+# firebase
+.firebase
+firebase-debug.log
+*.log
+
+# testing
+/coverage
+
+# environment variables
+.env
+.env*.local
+service-account-key.json
+/frontend/.env.local
