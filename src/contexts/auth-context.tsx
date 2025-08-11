@@ -10,7 +10,9 @@ import {
     signOut,
     sendPasswordResetEmail,
     updateProfile,
-    UserCredential
+    UserCredential,
+    GoogleAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -37,6 +39,7 @@ interface AuthContextType {
     loading: boolean;
     signupWithEmail: (email: string, password: string, displayName: string, role: Role, additionalData?: any) => Promise<UserCredential>;
     loginWithEmail: (email: string, password: string) => Promise<UserCredential>;
+    loginWithGoogle: () => Promise<UserCredential>;
     logout: () => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
 }
@@ -71,32 +74,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const currentPath = window.location.pathname;
                     
                     if (role === 'admin' || role === 'super_admin') {
-                        if (currentPath !== '/admin/dashboard') {
+                        if (!currentPath.startsWith('/admin')) {
                             console.log("Redirecting to /admin/dashboard...");
                             router.replace('/admin/dashboard');
                         }
                     } else if (role === 'doctor') {
-                         if (currentPath !== '/doctor/dashboard') {
+                         if (!currentPath.startsWith('/doctor')) {
                             console.log("Redirecting to /doctor/dashboard...");
                             router.replace('/doctor/dashboard');
                          }
                     } else if (role === 'medical_lab') {
-                        if (currentPath !== '/lab/dashboard') {
+                        if (!currentPath.startsWith('/lab')) {
                             console.log("Redirecting to /lab/dashboard...");
                             router.replace('/lab/dashboard');
                         }
                     } else if (role === 'pharmacist') {
-                        if (currentPath !== '/pharmacy/dashboard') {
+                        if (!currentPath.startsWith('/pharmacy')) {
                             console.log("Redirecting to /pharmacy/dashboard...");
                             router.replace('/pharmacy/dashboard');
                         }
                     } else if (role === 'hospital') {
-                        if (currentPath !== '/hospital/dashboard') {
+                        if (!currentPath.startsWith('/hospital')) {
                             console.log("Redirecting to /hospital/dashboard...");
                             router.replace('/hospital/dashboard');
                         }
                     } else if (role === 'patient') {
-                        if (currentPath !== '/dashboard') {
+                        if (!currentPath.startsWith('/dashboard')) {
                             console.log("Redirecting to /dashboard...");
                             router.replace('/dashboard');
                         }
@@ -249,6 +252,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return signInWithEmailAndPassword(auth, email, password);
     };
 
+    const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        const firebaseUser = userCredential.user;
+
+        // Check if user exists in Firestore
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            // New user, create documents
+            const userDocPayload = {
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                provider: firebaseUser.providerId,
+                createdAt: serverTimestamp(),
+                roles: { patient: true } // Default role
+            };
+            await setDoc(userDocRef, userDocPayload);
+
+            const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
+            await setDoc(profileDocRef, {
+                isVerified: true, // Google users are considered verified
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                patientData: { isMinor: false }
+            });
+        }
+        return userCredential;
+    };
+
     const logout = async () => {
         await signOut(auth);
         router.push('/login');
@@ -263,6 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signupWithEmail,
         loginWithEmail,
+        loginWithGoogle,
         logout,
         sendPasswordReset
     };
