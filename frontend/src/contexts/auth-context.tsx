@@ -10,7 +10,9 @@ import {
     signOut,
     sendPasswordResetEmail,
     updateProfile,
-    UserCredential
+    UserCredential,
+    GoogleAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';

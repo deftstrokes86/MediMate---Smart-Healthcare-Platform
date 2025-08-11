@@ -509,12 +509,12 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2
 ;
 ;
 const firebaseConfig = {
-    apiKey: ("TURBOPACK compile-time value", "your-api-key"),
-    authDomain: ("TURBOPACK compile-time value", "your-auth-domain"),
-    projectId: ("TURBOPACK compile-time value", "your-project-id"),
-    storageBucket: ("TURBOPACK compile-time value", "your-storage-bucket"),
-    messagingSenderId: ("TURBOPACK compile-time value", "your-messaging-sender-id"),
-    appId: ("TURBOPACK compile-time value", "your-app-id")
+    apiKey: ("TURBOPACK compile-time value", "AIzaSyC02r6g_4J7TuUEIqn3fs3M3hUbeDY74T0"),
+    authDomain: ("TURBOPACK compile-time value", "medimate-usnqy.firebaseapp.com"),
+    projectId: ("TURBOPACK compile-time value", "medimate-usnqy"),
+    storageBucket: ("TURBOPACK compile-time value", "medimate-usnqy.firebasestorage.app"),
+    messagingSenderId: ("TURBOPACK compile-time value", "419797666033"),
+    appId: ("TURBOPACK compile-time value", "1:419797666033:web:6ebb19616d793cc3a18150")
 };
 // Initialize Firebase
 const app = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm2017$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__["getApps"])().length === 0 ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm2017$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__["initializeApp"])(firebaseConfig) : (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm2017$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__["getApp"])();
