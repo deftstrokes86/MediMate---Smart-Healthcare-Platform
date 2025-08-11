@@ -1,5 +1,9 @@
+
 {
   "projects": {
-    "default": "medimate-usnqy"
+    "default": "medimate-dev",
+    "dev": "medimate-dev",
+    "staging": "medimate-staging",
+    "prod": "medimate-prod"
   }
 }
