@@ -1,92 +1,64 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isAuth() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return isAuth() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
-        return isAuth() && (request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin');
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
 
-    function isDoctor() {
-        return isAuth() && request.auth.token.role == 'doctor';
+    // profiles/{uid}
+    match /profiles/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.role in ['patient','doctor','pharmacy','medical_lab','hospital','admin']
+                    // ensure required base fields exist
+                    && request.resource.data.displayName is string
+                    && request.resource.data.createdAt == request.time;
+      // Prevent clients from writing verification fields
+      allow update: if (isOwner(uid) && 
+                       // owners may update non-sensitive fields only
+                       !(request.resource.data.keys().hasAny(['isVerified','verificationStatus','verificationReviewedAt','verificationRequestedAt','kyc'])) )
+                    || isAdmin()
+                    || (request.auth == null ? false : false);
+      // Note: server-side functions (admin SDK) bypass rules so they can update verification fields.
     }
 
-    function isPatient() {
-        return isAuth() && request.auth.token.role == 'patient';
+    // kyc_docs/{uid}/{docId}
+    match /kyc_docs/{uid}/{docId} {
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.docId is string
+                    && request.resource.data.storagePath is string
+                    && request.resource.data.uploadedAt == request.time;
+      // Only admin or server should update 'virusScanStatus' and 'ocrStatus'
+      allow update: if (isAdmin())
+                    || (request.auth != null && request.auth.uid == uid
+                        && !(
+                          request.resource.data.keys().hasAny(['virusScanStatus','ocrStatus','ocrRef'])
+                        ));
+      allow read: if isOwner(uid) || isAdmin();
     }
 
-    // Profiles: Users can manage their own profile. Admins can manage any profile.
-    // isVerified and verificationStatus can ONLY be set by an admin/server.
-    match /profiles/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuth(); // Anyone authenticated can create a profile shell
-      allow update: if isOwner(userId) || isAdmin();
-      
-      // Explicitly block clients from self-verifying.
-      allow update: if request.resource.data.isVerified != resource.data.isVerified 
-                        && !isAdmin();
-      allow update: if request.resource.data.verificationStatus != resource.data.verificationStatus 
-                        && !isAdmin();
-    }
-    
-    // Users: Basic user info, tied to profile.
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuth(); // Let users create their own record on signup
-      allow update: if isOwner(userId) || isAdmin(); // e.g. for updating displayName
-    }
-
-    // KYC Documents: Created via server function, readable by owner and admin.
-    // Status fields are only updatable by server/admin.
-    match /kyc_docs/{userId}/{docId} {
-        allow create: if isOwner(userId) || isAdmin();
-        allow read, update: if isOwner(userId) || isAdmin();
-        
-        // Prevent client from changing scan/OCR status
-        allow update: if (request.resource.data.virusScanStatus != resource.data.virusScanStatus ||
-                          request.resource.data.ocrStatus != resource.data.ocrStatus)
-                          && !isAdmin();
-    }
-    
-    // Verification History: Append-only for server, readable by admin/owner.
-    match /verifications/{userId}/{versionId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isAdmin();
-        allow update, delete: if false; // Immutable
-    }
-
-    // Audits: Write-only for server, read-only for admins. Immutable.
+    // audits/{auditId} - write by server only, read by admin
     match /audits/{auditId} {
-        allow read: if isAdmin();
-        allow create: if isAdmin(); // Should be server-only but allow admin for flexibility
-        allow update, delete: if false; // Immutable
-    }
-    
-    // Admin Invites: Used for super admin creation flow
-    match /adminInvites/{token} {
-      // Public read is needed for the client to validate the token
-      allow read: if true; 
-      // Only an admin can create an invite (via a function), and a function can update it.
-      allow write: if isAdmin();
+      allow create: if isAdmin(); // ideally written by server/admin functions
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
-    // Appointments, prescriptions, etc. (Role-specific access)
-    match /appointments/{appointmentId} {
-      allow read, write: if isDoctor() || isPatient();
+    // verifications/{uid}/{version}
+    match /verifications/{uid}/{versionId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isAdmin(); // server-only
     }
-    
-    match /prescriptions/{prescriptionId} {
-       allow read, write: if isDoctor() || isPatient();
+
+    // organizations/{orgId}
+    match /organizations/{orgId} {
+      allow read: if request.auth != null;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
     }
   }
 }
