@@ -1,0 +1,21 @@
+
+{
+  "profiles": [
+    {
+      "uid": "doctor1",
+      "displayName": "Dr. Alice",
+      "role": "doctor",
+      "isVerified": false,
+      "verificationStatus": "pending",
+      "createdAt": { "timestampValue": "2025-08-01T00:00:00Z" }
+    },
+    {
+      "uid": "admin1",
+      "displayName": "Admin",
+      "role": "admin",
+      "isVerified": true,
+      "verificationStatus": "approved",
+      "createdAt": { "timestampValue": "2025-01-01T00:00:00Z" }
+    }
+  ]
+}
