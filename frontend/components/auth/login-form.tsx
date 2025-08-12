@@ -39,19 +39,20 @@ async function loginWithGoogle(): Promise<UserCredential> {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
+        // New user, create documents
         const userDocPayload = {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             provider: firebaseUser.providerId,
             createdAt: serverTimestamp(),
-            roles: { patient: true }
+            roles: { patient: true } // Default role
         };
         await setDoc(userDocRef, userDocPayload);
 
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         await setDoc(profileDocRef, {
-            isVerified: true,
+            isVerified: true, // Google users are considered verified
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             patientData: { isMinor: false }
@@ -92,6 +93,7 @@ export default function LoginForm() {
     setIsGoogleLoading(true);
     try {
       await loginWithGoogle();
+      // Redirect is handled by AuthContext onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",
