@@ -1,0 +1,19 @@
+# Firebase service account key
+service-account-key.json
+
+# Local dependencies
+node_modules/
+
+# Build output
+lib/
+
+# Log files
+*.log
+firebase-debug.log
+firebase-debug.*.log
+
+# Other local files
+*.local
+.env
+.env.local
+.env.*.local
