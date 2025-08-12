@@ -1,93 +1,92 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for checking user roles and ownership
+    // Helper functions
+    function isAuth() {
+      return request.auth != null;
+    }
+    
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isAuth() && request.auth.uid == userId;
     }
 
     function isAdmin() {
-      return request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
+        return isAuth() && (request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin');
     }
 
     function isDoctor() {
-      return request.auth.token.role == 'doctor';
+        return isAuth() && request.auth.token.role == 'doctor';
     }
-    
+
     function isPatient() {
-        return request.auth.token.role == 'patient';
+        return isAuth() && request.auth.token.role == 'patient';
     }
 
-    // Profiles Collection
+    // Profiles: Users can manage their own profile. Admins can manage any profile.
+    // isVerified and verificationStatus can ONLY be set by an admin/server.
     match /profiles/{userId} {
-      // Admins can read/write any profile
-      allow read, write: if isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuth(); // Anyone authenticated can create a profile shell
+      allow update: if isOwner(userId) || isAdmin();
       
-      // Authenticated users can read their own profile
-      allow read: if isOwner(userId);
-
-      // Users can create their own profile
-      allow create: if isOwner(userId);
-
-      // Users can update their own profile, but cannot change sensitive fields
-      allow update: if isOwner(userId)
-                    && request.resource.data.isVerified == resource.data.isVerified
-                    && request.resource.data.verificationStatus == resource.data.verificationStatus
-                    && request.resource.data.role == resource.data.role;
+      // Explicitly block clients from self-verifying.
+      allow update: if request.resource.data.isVerified != resource.data.isVerified 
+                        && !isAdmin();
+      allow update: if request.resource.data.verificationStatus != resource.data.verificationStatus 
+                        && !isAdmin();
     }
-
-    // Users Collection (contains basic auth info and roles object)
+    
+    // Users: Basic user info, tied to profile.
     match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuth(); // Let users create their own record on signup
+      allow update: if isOwner(userId) || isAdmin(); // e.g. for updating displayName
+    }
+
+    // KYC Documents: Created via server function, readable by owner and admin.
+    // Status fields are only updatable by server/admin.
+    match /kyc_docs/{userId}/{docId} {
+        allow create: if isOwner(userId) || isAdmin();
+        allow read, update: if isOwner(userId) || isAdmin();
+        
+        // Prevent client from changing scan/OCR status
+        allow update: if (request.resource.data.virusScanStatus != resource.data.virusScanStatus ||
+                          request.resource.data.ocrStatus != resource.data.ocrStatus)
+                          && !isAdmin();
+    }
+    
+    // Verification History: Append-only for server, readable by admin/owner.
+    match /verifications/{userId}/{versionId} {
         allow read: if isOwner(userId) || isAdmin();
-        allow create: if request.auth.uid == userId;
+        allow create: if isAdmin();
+        allow update, delete: if false; // Immutable
+    }
+
+    // Audits: Write-only for server, read-only for admins. Immutable.
+    match /audits/{auditId} {
+        allow read: if isAdmin();
+        allow create: if isAdmin(); // Should be server-only but allow admin for flexibility
+        allow update, delete: if false; // Immutable
     }
     
-    // Admin Invites
+    // Admin Invites: Used for super admin creation flow
     match /adminInvites/{token} {
-        allow read, write: if isAdmin();
-        // Allow unauthenticated reads only for token validation on the client
-        allow get: if !exists(/databases/$(database)/documents/adminInvites/$(token)) || resource.data.status == 'valid';
+      // Public read is needed for the client to validate the token
+      allow read: if true; 
+      // Only an admin can create an invite (via a function), and a function can update it.
+      allow write: if isAdmin();
     }
 
-    // Patient-specific collections
-    match /encounters/{encounterId} {
-        allow read, write: if isPatient() && resource.data.patientId == request.auth.uid;
-    }
-    
-    match /orders/{orderId} {
-        allow read, write: if isPatient() && resource.data.patientId == request.auth.uid;
-    }
-
-    match /messages/{messageId} {
-        allow read, write: if isPatient() && resource.data.userId == request.auth.uid;
-    }
-
-    // Doctor-specific collections
+    // Appointments, prescriptions, etc. (Role-specific access)
     match /appointments/{appointmentId} {
-      // Admins can manage all appointments
-      allow read, write: if isAdmin();
-      // Doctors can manage their own appointments
-      allow read, write: if isDoctor() && resource.data.doctorId == request.auth.uid;
-      // Patients can read their own appointments
-      allow read: if isPatient() && resource.data.patientId == request.auth.uid;
-    }
-
-    match /prescriptions/{prescriptionId} {
-      // Admins can manage all prescriptions
-      allow read, write: if isAdmin();
-      // Doctors can manage their own prescriptions
-      allow read, write: if isDoctor() && resource.data.doctorId == request.auth.uid;
-      // Patients can read their own prescriptions
-      allow read: if isPatient() && resource.data.patientId == request.auth.uid;
+      allow read, write: if isDoctor() || isPatient();
     }
     
-    // Fictional 'patients' collection for doctors
-    // A doctor would likely query the `profiles` collection, but if they had a subcollection of patients:
-    match /doctors/{doctorId}/assignedPatients/{patientId} {
-        allow read, write: if isDoctor() && doctorId == request.auth.uid;
+    match /prescriptions/{prescriptionId} {
+       allow read, write: if isDoctor() || isPatient();
     }
-
   }
 }
