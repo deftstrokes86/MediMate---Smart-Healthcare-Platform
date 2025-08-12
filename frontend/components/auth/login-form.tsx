@@ -95,11 +95,17 @@ export default function LoginForm() {
       await loginWithGoogle();
       // Redirect is handled by AuthContext onAuthStateChanged
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Google Sign-In Failed",
-        description: error.message,
-      });
+      // Handle the specific error where the user closes the popup
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log("Google Sign-In popup closed by user.");
+        // We can choose to do nothing here, as it's a user action, not an error.
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Google Sign-In Failed",
+          description: error.message,
+        });
+      }
     } finally {
       setIsGoogleLoading(false);
     }
