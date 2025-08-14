@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { RoleBadge } from "@/components/admin/badges";
-import { Loader2, User, Heart, Shield, Phone, Edit } from "lucide-react";
+import { Loader2, User, Heart, Shield, Phone, Edit, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export default function PatientProfilePage() {
     const { user, loading } = useAuth();
@@ -68,6 +71,29 @@ export default function PatientProfilePage() {
                         <InfoRow label="Phone" value={patientData?.emergencyContact?.phone} />
                         <InfoRow label="Relationship" value={patientData?.emergencyContact?.relationship} />
                     </ProfileSection>
+                     <div className="md:col-span-2">
+                        <ProfileSection icon={<Eye className="text-primary"/>} title="Privacy Settings">
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="pseudonym">Pseudonym</Label>
+                                    <Input id="pseudonym" defaultValue={profile?.pseudonym || ''} placeholder="e.g. BlueJay" />
+                                    <p className="text-xs text-muted-foreground mt-1">This name will be displayed during consultations if you enable it below.</p>
+                                </div>
+                                <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="use-pseudonym">Use Pseudonym</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                        Enable this to use your pseudonym in consultations instead of your real name.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="use-pseudonym"
+                                        checked={profile?.usePseudonym}
+                                    />
+                                </div>
+                            </div>
+                        </ProfileSection>
+                    </div>
                 </CardContent>
              </Card>
         </div>
@@ -92,3 +118,5 @@ const InfoRow = ({ label, value }: { label: string, value?: string }) => (
         <span className="font-medium text-right">{value || "Not provided"}</span>
     </div>
 );
+
+    
