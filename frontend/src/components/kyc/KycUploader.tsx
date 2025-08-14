@@ -11,6 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, FileCheck2, FileX2 } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { Label } from '../ui/label';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/services/firebase';
+import { useAuth } from '@/contexts/auth-context';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
@@ -25,9 +28,8 @@ const formSchema = z.object({
         ),
 });
 
-// This is a basic scaffold. You'll need to integrate this with a callable
-// Cloud Function `generateSignedUploadUrl`.
 export default function KycUploader({ docType, onUploadSuccess }: { docType: string, onUploadSuccess: (data: any) => void }) {
+    const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const { toast } = useToast();
@@ -38,37 +40,24 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const file = values.file[0];
-        if (!file) return;
+        if (!file || !user) return;
 
         setIsLoading(true);
         setUploadProgress(0);
 
         try {
-            // 1. Call your `generateSignedUploadUrl` Cloud Function
-            // This is a placeholder for the actual function call.
-            console.log("Requesting signed URL for", {
+            const generateSignedUploadUrl = httpsCallable(functions, 'generateSignedUploadUrl');
+            const result: any = await generateSignedUploadUrl({
                 filename: file.name,
                 contentType: file.type,
                 docType: docType
             });
             
-            // const generateSignedUploadUrl = httpsCallable(functions, 'generateSignedUploadUrl');
-            // const result: any = await generateSignedUploadUrl({ ... });
-            // const { uploadUrl, storagePath, docId } = result.data;
-            
-            // --- MOCK RESPONSE FOR DEMO ---
-            const mockUploadUrl = "https://mock-upload-url.com/some-signed-path";
-            const mockStoragePath = `private/kyc/user-id-placeholder/${file.name}`;
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            // --- END MOCK ---
-            
-            console.log("Received signed URL:", mockUploadUrl);
+            const { uploadUrl, storagePath } = result.data;
 
-
-            // 2. Upload the file to the signed URL using PUT request
             await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
-                xhr.open('PUT', mockUploadUrl, true);
+                xhr.open('PUT', uploadUrl, true);
                 xhr.setRequestHeader('Content-Type', file.type);
 
                 xhr.upload.onprogress = (event) => {
@@ -82,7 +71,7 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
                     if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(xhr.response);
                     } else {
-                        reject(new Error(`Upload failed with status: ${xhr.status}`));
+                        reject(new Error(`Upload failed with status: ${xhr.statusText}`));
                     }
                 };
 
@@ -93,8 +82,8 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
                 xhr.send(file);
             });
             
-            toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
-            onUploadSuccess({ storagePath: mockStoragePath });
+            toast({ title: "Upload Successful", description: `${docType.replace(/_/g, ' ')} has been uploaded.` });
+            onUploadSuccess({ storagePath });
 
         } catch (error: any) {
             console.error(error);
@@ -111,10 +100,10 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
     }
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 border rounded-lg">
-            <Label htmlFor="file-upload">Upload {docType.replace('_', ' ')}</Label>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 p-4 border rounded-lg bg-background/50">
+            <Label htmlFor={`file-upload-${docType}`}>Upload {docType.replace(/_/g, ' ')}</Label>
             <Input 
-                id="file-upload"
+                id={`file-upload-${docType}`}
                 type="file" 
                 {...form.register('file')}
                 disabled={isLoading}
