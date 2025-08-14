@@ -23,6 +23,7 @@ type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | '
 interface UserProfile {
     isVerified?: boolean;
     usePseudonym?: boolean;
+    verificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
     patientData?: {
         isMinor: boolean;
         childProfile?: any;
@@ -75,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setUser(authUser);
 
                         // Only redirect on initial load or role change, not every profile update
-                        if (loading) {
+                        const initialLoad = loading;
+                        if (initialLoad) {
                             const currentPath = window.location.pathname;
                             if (role === 'admin' || role === 'super_admin') {
                                 if (!currentPath.startsWith('/admin')) router.replace('/admin/dashboard');
@@ -90,11 +92,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             } else if (role === 'patient') {
                                 // Allow staying on certain public pages even if logged in
                                 const publicOkPaths = ['/', '/about', '/contact', '/features', '/how-it-works', '/faq', '/privacy-policy', '/terms', '/parental-consent', '/symptom-checker'];
-                                if (!currentPath.startsWith('/dashboard') && !publicOkPaths.includes(currentPath)) {
+                                const isAuthPage = ['/login', '/signup'].some(p => currentPath.startsWith(p));
+                                if (!currentPath.startsWith('/dashboard') && !publicOkPaths.includes(currentPath) && !isAuthPage) {
                                     router.replace('/dashboard');
                                 }
                             }
                         }
+                         setLoading(false);
+                    }, (error) => {
+                         console.error("Error listening to profile document:", error);
+                         setUser(null);
                          setLoading(false);
                     });
 
@@ -150,8 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
-        if (role === 'doctor') {
+        
+        if (role !== 'patient' && role !== 'super_admin') {
              profileData.verificationStatus = 'pending';
+             profileData.isVerified = false;
         }
 
 
@@ -217,7 +226,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'pharmacist':
-                 profileData.verificationStatus = 'pending';
                 profileData.pharmacistData = {
                     pharmacyName: additionalData.pharmacyName,
                     address: additionalData.pharmacyAddress,
@@ -227,7 +235,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'medical_lab':
-                 profileData.verificationStatus = 'pending';
                 profileData.medicalLabData = {
                     labName: additionalData.labName,
                     address: additionalData.labAddress,
@@ -237,7 +244,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'hospital':
-                 profileData.verificationStatus = 'pending';
                 profileData.hospitalData = {
                     hospitalName: additionalData.hospitalName,
                     address: additionalData.hospitalAddress,

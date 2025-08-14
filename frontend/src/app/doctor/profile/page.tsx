@@ -21,6 +21,7 @@ export default function DoctorProfilePage() {
             <InfoRow label="Date of Birth" value={providerData.dob} isEditing={isEditing} type="date" />
             <InfoRow label="Nationality" value={providerData.nationality} isEditing={isEditing} />
             <InfoRow label="Contact Address" value={providerData.address} isEditing={isEditing} />
+            <InfoRow label="Phone Number" value={providerData.phone} isEditing={isEditing} />
         </>
     );
 

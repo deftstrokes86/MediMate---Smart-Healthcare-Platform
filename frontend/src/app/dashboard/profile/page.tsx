@@ -6,11 +6,12 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { RoleBadge } from "@/components/admin/badges";
-import { Loader2, User, Heart, Shield, Phone, Edit, Eye, Save, X } from "lucide-react";
+import { RoleBadge, VerificationStatusBadge } from "@/components/admin/badges";
+import { Loader2, User, Heart, Shield, Phone, Edit, Eye, Save, X, FileBadge2, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import KycUploader from "@/components/kyc/KycUploader";
 
 export default function PatientProfilePage() {
     const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ export default function PatientProfilePage() {
     
     const profile = user.profile;
     const patientData = profile?.patientData;
+    const verificationStatus = profile?.verificationStatus || 'none';
 
     return (
         <div className="space-y-6">
@@ -42,7 +44,9 @@ export default function PatientProfilePage() {
                             <CardTitle className="text-3xl font-bold font-headline">{user.displayName}</CardTitle>
                             {user.role && <RoleBadge role={user.role} />}
                         </div>
-                        <CardDescription>{user.email}</CardDescription>
+                        <CardDescription className="flex items-center justify-center md:justify-start gap-2 mt-1">
+                            {user.email} <VerificationStatusBadge status={verificationStatus} />
+                        </CardDescription>
                     </div>
                      {isEditing ? (
                         <div className="flex gap-2">
@@ -110,6 +114,29 @@ export default function PatientProfilePage() {
                     </div>
                 </CardContent>
              </Card>
+
+              {patientData?.isMinor && (
+                 <Card className="shadow-lg rounded-2xl">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><FileBadge2 className="text-primary"/>KYC Documents (Guardian)</CardTitle>
+                        <CardDescription>Upload your documents for guardian verification. Your documents are securely stored and only visible to administrators.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-6">
+                        {(verificationStatus === 'pending' || verificationStatus === 'rejected' || verificationStatus === 'none') && (
+                            <>
+                                <KycUploader docType="Guardian_ID" onUploadSuccess={(data) => console.log(data)} />
+                                <KycUploader docType="Proof_Of_Guardianship" onUploadSuccess={(data) => console.log(data)} />
+                            </>
+                        )}
+                        {verificationStatus === 'approved' && (
+                            <div className="md:col-span-2 flex items-center gap-2 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
+                                <CheckCircle className="h-5 w-5" />
+                                <span className="font-semibold text-sm">Your documents have been verified. No further action is needed.</span>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
