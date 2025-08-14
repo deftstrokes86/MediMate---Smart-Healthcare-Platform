@@ -88,8 +88,18 @@ export default function ProviderProfilePage({
                     <CardDescription>Upload your documents for verification. Your documents are securely stored and only visible to administrators.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                    <KycUploader docType="Business_Registration_CAC" onUploadSuccess={(data) => console.log(data)} />
-                    <KycUploader docType="Professional_License" onUploadSuccess={(data) => console.log(data)} />
+                    {(verificationStatus === 'pending' || verificationStatus === 'rejected' || verificationStatus === 'none') && (
+                        <>
+                            <KycUploader docType="Business_Registration_CAC" onUploadSuccess={(data) => console.log(data)} />
+                            <KycUploader docType="Professional_License" onUploadSuccess={(data) => console.log(data)} />
+                        </>
+                    )}
+                     {verificationStatus === 'approved' && (
+                        <div className="md:col-span-2 flex items-center gap-2 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-semibold text-sm">Your documents have been verified. No further action is needed.</span>
+                        </div>
+                    )}
                 </CardContent>
              </Card>
         </div>

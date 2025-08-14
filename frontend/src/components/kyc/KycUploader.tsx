@@ -14,6 +14,8 @@ import { Label } from '../ui/label';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/services/firebase';
 import { useAuth } from '@/contexts/auth-context';
+import { Card } from '../ui/card';
+import { cn } from '@/lib/utils';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
@@ -33,6 +35,7 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
     const [isLoading, setIsLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const { toast } = useToast();
+    const [isHovering, setIsHovering] = useState(false);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -83,7 +86,7 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
             });
             
             toast({ title: "Upload Successful", description: `${docType.replace(/_/g, ' ')} has been uploaded.` });
-            onUploadSuccess({ storagePath });
+            onUploadSuccess({ storagePath, kycDocumentURL: result.data.downloadUrl });
 
         } catch (error: any) {
             console.error(error);
@@ -100,15 +103,29 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
     }
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 p-4 border rounded-lg bg-background/50">
-            <Label htmlFor={`file-upload-${docType}`}>Upload {docType.replace(/_/g, ' ')}</Label>
-            <Input 
-                id={`file-upload-${docType}`}
-                type="file" 
-                {...form.register('file')}
-                disabled={isLoading}
-                className="file:text-primary file:font-semibold"
-            />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+             <Card 
+                className={cn("p-4 bg-[#EAF4FC] border-2 border-dashed border-[#DEE4EA] rounded-xl text-center cursor-pointer transition-colors", isHovering && "border-primary")}
+                onDragOver={(e) => { e.preventDefault(); setIsHovering(true); }}
+                onDragLeave={() => setIsHovering(false)}
+                onDrop={() => setIsHovering(false)}
+            >
+                <Label htmlFor={`file-upload-${docType}`} className="cursor-pointer">
+                    <div className='flex flex-col items-center gap-2'>
+                        <UploadCloud className="w-6 h-6 text-primary" />
+                        <span className="font-semibold text-primary">Upload {docType.replace(/_/g, ' ')}</span>
+                        <p className="text-xs text-muted-foreground">Drag & drop or click to select a file</p>
+                    </div>
+                </Label>
+                <Input 
+                    id={`file-upload-${docType}`}
+                    type="file" 
+                    {...form.register('file')}
+                    disabled={isLoading}
+                    className="sr-only"
+                />
+            </Card>
+
             {form.formState.errors.file && (
                 <p className="text-sm font-medium text-destructive">
                     {form.formState.errors.file.message as string}
@@ -117,7 +134,7 @@ export default function KycUploader({ docType, onUploadSuccess }: { docType: str
 
             {uploadProgress !== null && <Progress value={uploadProgress} className="h-2" />}
 
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" disabled={isLoading || !form.watch('file')?.[0]} className="w-full">
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                 {isLoading ? `Uploading... ${uploadProgress || 0}%` : "Upload Document"}
             </Button>

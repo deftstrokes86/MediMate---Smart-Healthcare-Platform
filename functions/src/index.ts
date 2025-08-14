@@ -120,9 +120,14 @@ export const generateSignedUploadUrl = functions.https.onCall(async (data, conte
     }
 
     const { filename, contentType, docType } = data;
+    if (!filename || !contentType || !docType) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing filename, contentType, or docType.');
+    }
+
     const uid = context.auth.uid;
     const docId = uuidv4();
-    const storagePath = `private/kyc/${uid}/${docId}-${filename}`;
+    const extension = filename.split('.').pop();
+    const storagePath = `kycDocs/${uid}/${docType}.${extension}`;
 
     const [uploadUrl] = await storage.bucket().file(storagePath).getSignedUrl({
         version: 'v4',
@@ -131,21 +136,20 @@ export const generateSignedUploadUrl = functions.https.onCall(async (data, conte
         contentType,
     });
 
-    // Create a metadata document in Firestore
-    const kycDocRef = db.collection('kyc_docs').doc(uid).collection('docs').doc(docId);
-    await kycDocRef.set({
-        docId,
-        storagePath,
-        mimeType: contentType,
-        docType,
-        uploadedBy: uid,
-        uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
-        virusScanStatus: 'pending',
-        ocrStatus: 'pending',
-        reviewNote: null,
+    const [downloadUrl] = await storage.bucket().file(storagePath).getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
     });
 
-    return { uploadUrl, storagePath, docId };
+    // Update profile with the URL
+    const profileRef = db.collection('profiles').doc(uid);
+    await profileRef.set({
+        kycDocumentURL: downloadUrl,
+        verificationStatus: 'pending',
+    }, { merge: true });
+
+    return { uploadUrl, storagePath, docId, downloadUrl };
 });
 
 /**

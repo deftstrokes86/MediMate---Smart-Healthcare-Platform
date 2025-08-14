@@ -23,16 +23,16 @@ type VerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export const VerificationStatusBadge = ({ status }: { status: VerificationStatus }) => {
     const statusStyles: { [key in VerificationStatus]: { text: string; className: string; } } = {
-        none: { text: "Not Submitted", className: "border-gray-200 bg-gray-50 text-gray-600" },
-        pending: { text: "Pending", className: "border-amber-200 bg-amber-50 text-amber-700" },
-        approved: { text: "Verified", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-        rejected: { text: "Rejected", className: "border-red-200 bg-red-50 text-red-700" },
+        none: { text: "Not Submitted", className: "border-gray-300 bg-gray-100 text-gray-800" },
+        pending: { text: "Pending", className: "border-yellow-300 bg-yellow-100 text-yellow-800" },
+        approved: { text: "Verified", className: "border-green-300 bg-accent text-accent-foreground" },
+        rejected: { text: "Rejected", className: "border-red-300 bg-destructive text-destructive-foreground" },
     };
 
     const { text, className } = statusStyles[status] || statusStyles.none;
 
     return (
-        <Badge variant="outline" className={className}>
+        <Badge variant="outline" className={`px-3 py-1 rounded-full ${className}`}>
             {text}
         </Badge>
     );
