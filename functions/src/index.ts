@@ -1,4 +1,5 @@
 
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { v4 as uuidv4 } from 'uuid';
@@ -368,6 +369,27 @@ export const clearStaleMatches = functions.pubsub.schedule("every 5 minutes").on
 
   return batch.commit();
 });
+
+export const onConsultationEnd = functions.firestore
+    .document('consultations/{consultationId}')
+    .onUpdate(async (change, context) => {
+        const before = change.before.data();
+        const after = change.after.data();
+
+        if (before.status !== 'ended' && after.status === 'ended') {
+            const providerId = after.providerId;
+            if (providerId) {
+                try {
+                    const providerRef = db.collection('profiles').doc(providerId);
+                    await providerRef.update({ availability: true });
+                    functions.logger.info(`Made provider ${providerId} available again.`);
+                } catch (error) {
+                    functions.logger.error(`Failed to make provider ${providerId} available.`, error);
+                }
+            }
+        }
+        return null;
+    });
 
 
 // STUB FUNCTIONS - To be implemented with real services

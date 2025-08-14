@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, onSnapshot, collection, addDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, addDoc, updateDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { Role, Profile } from '@/lib/types/profile';
 import type { Consultation, RTCSessionDescription } from '@/lib/types/consultation';
@@ -121,51 +121,6 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
          setIsProcessing(false);
     }, []);
 
-    const toggleBlur = useCallback(async () => {
-        const shouldBeOn = !isBlurOn;
-        setIsBlurOn(shouldBeOn);
-
-        if (shouldBeOn) {
-            startProcessing();
-            const canvasStream = canvasRef.current.captureStream();
-            const audioTrack = unprocessedLocalStream.current?.getAudioTracks()[0];
-            if (audioTrack) {
-                canvasStream.addTrack(audioTrack);
-            }
-            setLocalStream(canvasStream);
-
-            const videoTrack = canvasStream.getVideoTracks()[0];
-            const sender = pc.current?.getSenders().find(s => s.track?.kind === 'video');
-            if (sender) {
-                await sender.replaceTrack(videoTrack);
-            }
-
-        } else {
-            stopProcessing();
-            setLocalStream(unprocessedLocalStream.current);
-            const videoTrack = unprocessedLocalStream.current?.getVideoTracks()[0];
-            if (videoTrack) {
-                const sender = pc.current?.getSenders().find(s => s.track?.kind === 'video');
-                if (sender) {
-                    await sender.replaceTrack(videoTrack);
-                }
-            }
-        }
-
-    }, [isBlurOn, startProcessing, stopProcessing]);
-
-    const setupMedia = useCallback(async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            unprocessedLocalStream.current = stream;
-            setLocalStream(stream);
-            return stream;
-        } catch (error) {
-            console.error("Error accessing media devices.", error);
-            return null;
-        }
-    }, []);
-
     const endCall = useCallback(async () => {
         if (pc.current) {
             pc.current.close();
@@ -194,6 +149,18 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
 
     }, [localStream, consultationId, router, currentUserRole, stopProcessing]);
 
+
+    const setupMedia = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            unprocessedLocalStream.current = stream;
+            setLocalStream(stream);
+            return stream;
+        } catch (error) {
+            console.error("Error accessing media devices.", error);
+            return null;
+        }
+    }, []);
 
     useEffect(() => {
         if (!consultationId || !currentUserId || !currentUserRole) return;
@@ -224,12 +191,15 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
             const consultationData = snapshot.data() as Consultation;
 
             const fetchUsers = async () => {
+                if(localUser && remoteUser) return;
                 const localProfileDoc = await getDoc(doc(db, 'profiles', currentUserId));
                 setLocalUser(localProfileDoc.data() as Profile);
 
                 const remoteUserId = currentUserRole === 'patient' ? consultationData.providerId : consultationData.patientId;
-                const remoteProfileDoc = await getDoc(doc(db, 'profiles', remoteUserId));
-                setRemoteUser(remoteProfileDoc.data() as Profile);
+                if(remoteUserId){
+                    const remoteProfileDoc = await getDoc(doc(db, 'profiles', remoteUserId));
+                    setRemoteUser(remoteProfileDoc.data() as Profile);
+                }
             };
 
              if (consultationData.status === 'ended') {
@@ -316,7 +286,7 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
             stopProcessing();
         };
 
-    }, [consultationId, currentUserId, currentUserRole, setupMedia, endCall, stopProcessing]);
+    }, [consultationId, currentUserId, currentUserRole, setupMedia, endCall, stopProcessing, localUser, remoteUser]);
 
     const toggleMute = () => {
         if (localStream) {
@@ -335,6 +305,38 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
             setIsVideoOff(prev => !prev);
         }
     };
+    
+    const toggleBlur = useCallback(async () => {
+        if (!unprocessedLocalStream.current || !pc.current) return;
+    
+        const nextBlurState = !isBlurOn;
+        setIsBlurOn(nextBlurState);
+    
+        let videoTrack: MediaStreamTrack | undefined;
+    
+        if (nextBlurState) {
+            await startProcessing();
+            const canvasStream = canvasRef.current.captureStream();
+            videoTrack = canvasStream.getVideoTracks()[0];
+            // Keep audio track
+            const audioTrack = unprocessedLocalStream.current.getAudioTracks()[0];
+            if (audioTrack) {
+                const newStream = new MediaStream([videoTrack, audioTrack]);
+                setLocalStream(newStream);
+            } else {
+                 setLocalStream(canvasStream);
+            }
+        } else {
+            stopProcessing();
+            videoTrack = unprocessedLocalStream.current.getVideoTracks()[0];
+            setLocalStream(unprocessedLocalStream.current);
+        }
+    
+        const sender = pc.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender && videoTrack) {
+            await sender.replaceTrack(videoTrack);
+        }
+    }, [isBlurOn, startProcessing, stopProcessing]);
 
     return { 
         localStream, 

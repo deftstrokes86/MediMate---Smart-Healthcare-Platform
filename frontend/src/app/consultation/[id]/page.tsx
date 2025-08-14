@@ -101,7 +101,7 @@ export default function ConsultationPage() {
                          <Button onClick={toggleBlur} variant={isBlurOn ? 'default' : 'outline'} size="icon" className="rounded-full h-12 w-12">
                             <Sparkles />
                         </Button>
-                         <Button onClick={endCall} variant="destructive" size="icon" className="rounded-full h-12 w-12">
+                         <Button onClick={endCall} variant="destructive" size="icon" className="rounded-full h-16 w-16">
                             <PhoneOff />
                         </Button>
                     </div>
