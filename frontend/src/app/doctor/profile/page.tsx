@@ -22,6 +22,8 @@ export default function DoctorProfilePage() {
     
     // @ts-ignore - doctorData is not yet formally in the type
     const doctorData = user.profile?.doctorData;
+    const verificationStatus = user.profile?.verificationStatus || 'none';
+
 
     return (
         <div className="space-y-6">
@@ -39,7 +41,7 @@ export default function DoctorProfilePage() {
                             {user.role && <RoleBadge role={user.role} />}
                         </div>
                         <CardDescription className="flex items-center justify-center md:justify-start gap-2 mt-1">
-                           {user.email} <VerificationStatusBadge isVerified={user.profile?.isVerified} />
+                           {user.email} <VerificationStatusBadge status={verificationStatus} />
                         </CardDescription>
                     </div>
                      <Button variant="outline">
@@ -94,3 +96,4 @@ const InfoRow = ({ label, value }: { label: string, value?: string }) => (
         <span className="font-medium text-right">{value || "Not provided"}</span>
     </div>
 );
+
