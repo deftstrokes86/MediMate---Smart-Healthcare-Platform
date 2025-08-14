@@ -3,7 +3,7 @@
 
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Video, Phone, MessageSquare, Mic, MicOff, VideoOff, PhoneOff, Loader2 } from 'lucide-react';
+import { Video, Phone, MessageSquare, Mic, MicOff, VideoOff, PhoneOff, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useWebRTC } from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,10 @@ export default function ConsultationPage() {
         remoteStream,
         isMuted,
         isVideoOff,
+        isBlurOn,
         toggleMute,
         toggleVideo,
+        toggleBlur,
         endCall,
         connectionState
     } = useWebRTC(consultationId, user?.uid, user?.role);
@@ -86,6 +88,9 @@ export default function ConsultationPage() {
                         </Button>
                          <Button onClick={toggleVideo} variant={isVideoOff ? 'destructive' : 'outline'} size="icon" className="rounded-full h-12 w-12">
                             {isVideoOff ? <VideoOff /> : <Video />}
+                        </Button>
+                         <Button onClick={toggleBlur} variant={isBlurOn ? 'default' : 'outline'} size="icon" className="rounded-full h-12 w-12">
+                            <Sparkles />
                         </Button>
                          <Button onClick={endCall} variant="destructive" size="icon" className="rounded-full h-12 w-12">
                             <PhoneOff />
