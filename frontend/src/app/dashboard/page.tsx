@@ -3,11 +3,17 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby, HeartPulse } from "lucide-react";
+import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby, HeartPulse, Video } from "lucide-react";
 import RequestConsultationDialog from "@/components/patient/RequestConsultationDialog";
+import { usePatientMatch } from "@/hooks/use-patient-match";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
+    const { patient, provider, loading: matchLoading } = usePatientMatch();
+
     const isGuardian = user?.profile?.patientData?.isMinor === true;
     const patientName = isGuardian 
         ? user?.profile?.patientData?.childProfile?.fullName?.split(' ')[0] 
@@ -21,6 +27,7 @@ export default function PatientDashboardPage() {
         ? "Your child's personal health overview."
         : "Your personal health overview.";
     
+    const showMatchCard = patient?.matchStatus === 'matched' && provider;
 
     return (
         <div className="space-y-6">
@@ -29,20 +36,59 @@ export default function PatientDashboardPage() {
                 <p className="text-muted-foreground">{subMessage}</p>
             </div>
             
-            <Card className="shadow-sm rounded-2xl bg-primary/5 border-primary/20">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <HeartPulse className="text-primary" />
-                        Need to see a doctor?
-                    </CardTitle>
-                    <CardDescription>
-                        Start a new consultation request to get matched with a specialist near you.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <RequestConsultationDialog />
-                </CardContent>
-            </Card>
+            {matchLoading && <MatchCardSkeleton />}
+
+            {showMatchCard && (
+                <Card className="shadow-lg rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/50 animate-in fade-in-50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-primary">
+                            <Video />
+                            We've found a doctor for you!
+                        </CardTitle>
+                        <CardDescription>
+                            You have been matched for your consultation request.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+                        <Avatar className="h-16 w-16">
+                            <AvatarImage src={provider.photoURL} />
+                            <AvatarFallback>{provider.displayName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 text-center sm:text-left">
+                            <p className="font-bold text-lg">{provider.displayName}</p>
+                            <p className="text-muted-foreground">{provider.specialties?.join(', ')}</p>
+                        </div>
+                        <Button size="lg" className="w-full sm:w-auto">
+                            Join Consultation
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
+            {!showMatchCard && patient?.matchStatus !== 'matched' && (
+                <Card className="shadow-sm rounded-2xl bg-primary/5 border-primary/20">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <HeartPulse className="text-primary" />
+                            Need to see a doctor?
+                        </CardTitle>
+                        <CardDescription>
+                            Start a new consultation request to get matched with a specialist near you.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       {patient?.matchStatus === 'waiting' ? (
+                           <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                               <p className="font-semibold text-amber-800">Searching for a doctor for you...</p>
+                               <p className="text-sm text-amber-700">We'll notify you here as soon as you're matched.</p>
+                           </div>
+                       ) : (
+                           <RequestConsultationDialog />
+                       )}
+                    </CardContent>
+                </Card>
+            )}
+
 
              <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 w-fit">
                 <CheckCircle className="h-5 w-5" />
@@ -87,6 +133,23 @@ export default function PatientDashboardPage() {
         </div>
     );
 }
+
+const MatchCardSkeleton = () => (
+    <Card className="shadow-lg rounded-2xl">
+        <CardHeader>
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+            <Skeleton className="h-16 w-16 rounded-full" />
+            <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-1/4" />
+            </div>
+            <Skeleton className="h-12 w-full sm:w-36 rounded-md" />
+        </CardContent>
+    </Card>
+)
 
 const DashboardCard = ({ icon, title, value, description }: { icon: React.ReactNode, title: string, value: string, description: string }) => (
     <Card className="shadow-sm rounded-2xl">
