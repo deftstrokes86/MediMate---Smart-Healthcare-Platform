@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/fire
 import { db } from '@/services/firebase';
 import type { Patient } from '@/lib/types/patient';
 import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 interface MatchedPatientData {
     uid: string;
@@ -21,6 +22,7 @@ interface ProviderMatchData {
 
 export function useProviderMatch(): ProviderMatchData {
   const { user } = useAuth();
+  const router = useRouter();
   const [matchedPatient, setMatchedPatient] = useState<MatchedPatientData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +49,7 @@ export function useProviderMatch(): ProviderMatchData {
       // Assuming one match at a time for a provider
       const patientDoc = querySnapshot.docs[0];
       const patientData = patientDoc.data() as Patient;
+      const consultationId = patientDoc.id;
 
       try {
         const userDocRef = doc(db, 'profiles', patientData.uid);
@@ -60,6 +63,7 @@ export function useProviderMatch(): ProviderMatchData {
             photoURL: userData.photoURL,
             requestedSpecialty: patientData.requestedSpecialty
           });
+          router.push(`/consultation/${consultationId}`);
         }
       } catch (error) {
         console.error("Error fetching patient user profile:", error);
@@ -72,7 +76,7 @@ export function useProviderMatch(): ProviderMatchData {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, router]);
 
   return { matchedPatient, loading };
 }

@@ -294,25 +294,37 @@ export const matchPatients = functions.firestore
     // Match the patient and make the provider unavailable in a transaction
     const patientRef = db.collection("patients").doc(patientId);
     const providerRef = db.collection("profiles").doc(bestProvider.id);
+    const consultationRef = db.collection("consultations").doc(patientId); // Use patientId as consultationId
 
     return db.runTransaction(async (transaction) => {
         const providerDoc = await transaction.get(providerRef);
         if (!providerDoc.exists || !providerDoc.data()?.availability) {
             functions.logger.warn(`Provider ${bestProvider.id} became unavailable. Retrying match may be needed.`);
-            // This will cause the transaction to fail and not update the patient.
-            // The function might re-run, or a cleanup job might be needed.
             return;
         }
 
+        // 1. Update Patient
         transaction.update(patientRef, {
             matchStatus: "matched",
             matchedProviderId: bestProvider.id,
             matchedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
+        // 2. Update Provider
         transaction.update(providerRef, {
             availability: false
         });
+
+        // 3. Create Consultation Doc
+        transaction.set(consultationRef, {
+            id: patientId,
+            patientId: patientId,
+            providerId: bestProvider.id,
+            status: "pending",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        functions.logger.info(`Consultation ${patientId} created for patient ${patientId} and provider ${bestProvider.id}.`);
     });
   });
 
@@ -386,9 +398,3 @@ export const expiryMonitor = functions.pubsub.schedule('every 24 hours').onRun(a
     // Create notifications or audits.
     return null;
 });
-
-    
-
-    
-
-    
