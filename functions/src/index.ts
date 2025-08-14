@@ -269,9 +269,9 @@ export const matchPatients = functions.firestore
         [providerLocation.latitude, providerLocation.longitude]
       );
       return { id: doc.id, ...data, distance };
-    }).filter(p => p !== null); // Filter out providers with no location
+    }).filter(p => p !== null) as ({ id: string; distance: number; rating?: number; consultationCount?: number; }[] | null);
 
-    if (providersWithDistance.length === 0) {
+    if (!providersWithDistance || providersWithDistance.length === 0) {
         functions.logger.warn(`No providers with location found for specialty: ${specialty}.`);
         return null;
     }
@@ -279,7 +279,7 @@ export const matchPatients = functions.firestore
     // Sort providers by distance, then rating, then consultation count
     providersWithDistance.sort((a, b) => {
       if (a!.distance !== b!.distance) return a!.distance - b!.distance;
-      if (a!.rating !== b!.rating) return b!.rating - a!.rating; // Higher rating is better
+      if (a!.rating !== b!.rating) return (b!.rating || 0) - (a!.rating || 0); // Higher rating is better
       return (a!.consultationCount || 0) - (b!.consultationCount || 0); // Lower count is better for new assignments
     });
 
@@ -344,5 +344,7 @@ export const expiryMonitor = functions.pubsub.schedule('every 24 hours').onRun(a
     // Create notifications or audits.
     return null;
 });
+
+    
 
     
