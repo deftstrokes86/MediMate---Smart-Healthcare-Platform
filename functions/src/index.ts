@@ -8,6 +8,34 @@ admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
 
+/**
+ * Calculates the Haversine distance between two points on the earth.
+ * @param {[number, number]} coords1 - The first coordinates [lat, lon].
+ * @param {[number, number]} coords2 - The second coordinates [lat, lon].
+ * @returns {number} The distance in kilometers.
+ */
+function haversineDistance(coords1: [number, number], coords2: [number, number]): number {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const [lat1, lon1] = coords1;
+  const [lat2, lon2] = coords2;
+
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+
 export const onUserCreate = functions.auth.user().onCreate(async (user) => {
   functions.logger.info(`New user created: ${user.uid}`, {structuredData: true});
   
@@ -202,6 +230,92 @@ export const verifyProvider = functions.https.onCall(async (data, context) => {
 });
 
 
+export const matchPatients = functions.firestore
+  .document("patients/{patientId}")
+  .onWrite(async (change, context) => {
+    const after = change.after.data();
+
+    // Only proceed if a patient is waiting for a match
+    if (!after || after.matchStatus !== "waiting" || !after.requestedSpecialty) {
+        functions.logger.info(`Patient ${context.params.patientId} is not in 'waiting' state. Exiting.`);
+        return null;
+    }
+
+    const patientId = context.params.patientId;
+    const patientLocation = after.location;
+    const specialty = after.requestedSpecialty;
+    functions.logger.info(`Matching patient ${patientId} for specialty '${specialty}'.`);
+
+    // Find available providers with the right specialty
+    const providersSnap = await admin.firestore().collection("profiles")
+      .where("role", "==", "doctor")
+      .where("availability", "==", true)
+      .where("specialties", "array-contains", specialty)
+      .get();
+
+    if (providersSnap.empty) {
+        functions.logger.warn(`No available providers found for specialty: ${specialty}.`);
+        return null;
+    }
+
+    // Calculate distance for each provider
+    const providersWithDistance = providersSnap.docs.map(doc => {
+      const data = doc.data();
+      const providerLocation = data.address?.coords; // Using coords from profile
+      if (!providerLocation) return null;
+
+      const distance = haversineDistance(
+        [patientLocation.latitude, patientLocation.longitude],
+        [providerLocation.latitude, providerLocation.longitude]
+      );
+      return { id: doc.id, ...data, distance };
+    }).filter(p => p !== null); // Filter out providers with no location
+
+    if (providersWithDistance.length === 0) {
+        functions.logger.warn(`No providers with location found for specialty: ${specialty}.`);
+        return null;
+    }
+
+    // Sort providers by distance, then rating, then consultation count
+    providersWithDistance.sort((a, b) => {
+      if (a!.distance !== b!.distance) return a!.distance - b!.distance;
+      if (a!.rating !== b!.rating) return b!.rating - a!.rating; // Higher rating is better
+      return (a!.consultationCount || 0) - (b!.consultationCount || 0); // Lower count is better for new assignments
+    });
+
+    const bestProvider = providersWithDistance[0];
+    if (!bestProvider) {
+        functions.logger.error("Sorting failed to produce a best provider.");
+        return null;
+    }
+
+    functions.logger.info(`Best match for patient ${patientId} is provider ${bestProvider.id} at ${bestProvider.distance.toFixed(2)}km.`);
+
+    // Match the patient and make the provider unavailable in a transaction
+    const patientRef = db.collection("patients").doc(patientId);
+    const providerRef = db.collection("profiles").doc(bestProvider.id);
+
+    return db.runTransaction(async (transaction) => {
+        const providerDoc = await transaction.get(providerRef);
+        if (!providerDoc.exists || !providerDoc.data()?.availability) {
+            functions.logger.warn(`Provider ${bestProvider.id} became unavailable. Retrying match may be needed.`);
+            // This will cause the transaction to fail and not update the patient.
+            // The function might re-run, or a cleanup job might be needed.
+            return;
+        }
+
+        transaction.update(patientRef, {
+            matchStatus: "matched",
+            matchedProviderId: bestProvider.id
+        });
+
+        transaction.update(providerRef, {
+            availability: false
+        });
+    });
+  });
+
+
 // STUB FUNCTIONS - To be implemented with real services
 
 export const onKycUploadFinalize = functions.storage.object().onFinalize(async (object) => {
@@ -230,3 +344,5 @@ export const expiryMonitor = functions.pubsub.schedule('every 24 hours').onRun(a
     // Create notifications or audits.
     return null;
 });
+
+    
