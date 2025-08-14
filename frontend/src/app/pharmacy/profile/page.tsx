@@ -1,17 +1,37 @@
-
 "use client";
 
+import React, { useState } from "react";
 import ProviderProfilePage from "@/components/profile/ProviderProfilePage";
 import { useAuth } from "@/contexts/auth-context";
 import { Pill } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+const availableServices = [
+    "Prescription Fulfillment",
+    "OTC Sales",
+    "Delivery",
+    "Vaccination",
+    "Health Screenings",
+    "Consultations"
+];
 
 export default function PharmacyProfilePage() {
     const { user, loading } = useAuth();
     
     // @ts-ignore
     const providerData = user?.profile?.pharmacistData || {};
+    const [selectedServices, setSelectedServices] = useState<string[]>(providerData.services || []);
+
+    const toggleService = (service: string) => {
+        setSelectedServices(prev => 
+            prev.includes(service) 
+                ? prev.filter(s => s !== service)
+                : [...prev, service]
+        );
+    };
 
     const infoRows = (isEditing: boolean) => (
         <>
@@ -24,9 +44,33 @@ export default function PharmacyProfilePage() {
     );
 
     const servicesContent = (isEditing: boolean) => (
-        <p className="text-muted-foreground text-sm">
-            Pharmacy services/inventory management will be available here.
-        </p>
+         <div className="space-y-4">
+            <Label>Available Services</Label>
+            <div className="flex flex-wrap gap-2">
+                {availableServices.map(service => {
+                    const isSelected = selectedServices.includes(service);
+                    return (
+                        <Badge
+                            key={service}
+                            variant="outline"
+                            onClick={() => isEditing && toggleService(service)}
+                            className={cn(
+                                "cursor-pointer transition-colors",
+                                isSelected 
+                                    ? "bg-primary text-primary-foreground hover:bg-primary/80" 
+                                    : "bg-background text-foreground hover:bg-accent",
+                                !isEditing && "cursor-not-allowed opacity-70"
+                            )}
+                        >
+                            {service}
+                        </Badge>
+                    )
+                })}
+            </div>
+             <p className="text-xs text-muted-foreground">
+                {isEditing ? "Click on the services you provide." : "These are the services currently offered."}
+            </p>
+        </div>
     );
     
     return (
