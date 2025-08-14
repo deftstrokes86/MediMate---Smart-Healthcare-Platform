@@ -41,6 +41,13 @@ export interface Profile {
   verificationReviewedAt?: Timestamp;
   kyc?: KycMeta;
   providerDetails?: any;               // provider-type-specific small object
+  
+  // Provider-specific fields for matching
+  availability?: boolean;              // Default: false
+  lastAvailable?: Timestamp;
+  rating?: number;                     // Default: 0
+  consultationCount?: number;          // Default: 0
+
   createdAt: FieldValue;
   updatedAt: FieldValue;
 }

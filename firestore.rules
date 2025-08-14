@@ -7,6 +7,9 @@ service cloud.firestore {
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
+    function isDoctor() {
+      return request.auth != null && request.auth.token.role == 'doctor';
+    }
 
     // profiles/{uid}
     match /profiles/{uid} {
@@ -14,27 +17,32 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == uid
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.role in ['patient','doctor','pharmacy','medical_lab','hospital','admin']
-                    // ensure required base fields exist
                     && request.resource.data.displayName is string
                     && request.resource.data.createdAt == request.time;
-      // Prevent clients from writing verification fields
       allow update: if (isOwner(uid) && 
                        // owners may update non-sensitive fields only
                        !(request.resource.data.keys().hasAny(['isVerified','verificationStatus','verificationReviewedAt','verificationRequestedAt','kyc'])) )
-                    || isAdmin()
-                    || (request.auth == null ? false : false);
-      // Note: server-side functions (admin SDK) bypass rules so they can update verification fields.
+                    || isAdmin();
+    }
+
+    // patients/{uid}
+    match /patients/{uid} {
+      allow read: if isOwner(uid) || isAdmin() || (isDoctor() && resource.data.matchedProviderId == request.auth.uid);
+      allow create: if isOwner(uid)
+                     && request.resource.data.keys().hasAll(['uid', 'location', 'matchStatus'])
+                     && request.resource.data.uid == request.auth.uid;
+      allow update: if isOwner(uid) || isAdmin() || (isDoctor() && resource.data.matchedProviderId == request.auth.uid);
+      allow delete: if isOwner(uid) || isAdmin();
     }
 
     // kyc_docs/{uid}/{docId}
     match /kyc_docs/{uid}/{docId} {
-      allow create: if request.auth != null && request.auth.uid == uid
+      allow create: if (isOwner(uid) || isAdmin())
                     && request.resource.data.docId is string
                     && request.resource.data.storagePath is string
                     && request.resource.data.uploadedAt == request.time;
-      // Only admin or server should update 'virusScanStatus' and 'ocrStatus'
       allow update: if (isAdmin())
-                    || (request.auth != null && request.auth.uid == uid
+                    || (isOwner(uid)
                         && !(
                           request.resource.data.keys().hasAny(['virusScanStatus','ocrStatus','ocrRef'])
                         ));
