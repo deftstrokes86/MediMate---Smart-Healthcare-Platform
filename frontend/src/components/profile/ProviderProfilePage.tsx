@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RoleBadge, VerificationStatusBadge } from "@/components/admin/badges";
 import { Loader2, Edit, Save, X, FileBadge2, CheckCircle, Briefcase } from "lucide-react";
 import KycUploader from "@/components/kyc/KycUploader";
+import AvatarUploader from "@/components/profile/AvatarUploader";
 
 interface ProviderProfilePageProps {
     user: any;
@@ -27,6 +28,7 @@ export default function ProviderProfilePage({
     servicesContent,
 }: ProviderProfilePageProps) {
     const [isEditing, setIsEditing] = useState(false);
+    const [isAvatarUploaderOpen, setIsAvatarUploaderOpen] = useState(false);
 
     if (loading || !user) {
         return (
@@ -40,14 +42,20 @@ export default function ProviderProfilePage({
 
     return (
         <div className="space-y-6">
+             <AvatarUploader isOpen={isAvatarUploaderOpen} onOpenChange={setIsAvatarUploaderOpen} />
             <Card className="shadow-lg rounded-2xl overflow-hidden">
                 <CardHeader className="bg-primary/5 p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
-                    <Avatar className="h-24 w-24 border-4 border-white shadow-md">
-                        <AvatarImage src={user.photoURL || undefined} />
-                        <AvatarFallback className="text-3xl">
-                            {(user.displayName || 'P').charAt(0)}
-                        </AvatarFallback>
-                    </Avatar>
+                     <button onClick={() => setIsAvatarUploaderOpen(true)} className="relative group rounded-full">
+                        <Avatar className="h-24 w-24 border-4 border-white shadow-md">
+                            <AvatarImage src={user.photoURL || undefined} />
+                            <AvatarFallback className="text-3xl">
+                                {(user.displayName || 'P').charAt(0)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Edit className="h-8 w-8 text-white" />
+                        </div>
+                    </button>
                     <div className="text-center md:text-left flex-1">
                         <div className="flex items-center justify-center md:justify-start gap-3">
                             <CardTitle className="text-xl md:text-3xl font-bold font-headline">{user.displayName}</CardTitle>

@@ -1,5 +1,4 @@
 
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { v4 as uuidv4 } from 'uuid';
@@ -127,7 +126,9 @@ export const generateSignedUploadUrl = functions.https.onCall(async (data, conte
     const uid = context.auth.uid;
     const docId = uuidv4();
     const extension = filename.split('.').pop();
-    const storagePath = `kycDocs/${uid}/${docType}.${extension}`;
+    const basePath = docType === 'profile_picture' ? `profilePictures` : `kycDocs`;
+    const finalFilename = docType === 'profile_picture' ? `${uid}.${extension}` : `${docType}.${extension}`;
+    const storagePath = `${basePath}/${uid}/${finalFilename}`;
 
     const [uploadUrl] = await storage.bucket().file(storagePath).getSignedUrl({
         version: 'v4',
@@ -136,21 +137,49 @@ export const generateSignedUploadUrl = functions.https.onCall(async (data, conte
         contentType,
     });
 
-    const [downloadUrl] = await storage.bucket().file(storagePath).getSignedUrl({
-        version: 'v4',
+    if (docType !== 'profile_picture') {
+        const [downloadUrl] = await storage.bucket().file(storagePath).getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
+        });
+        const profileRef = db.collection('profiles').doc(uid);
+        await profileRef.set({
+            kycDocumentURL: downloadUrl,
+            verificationStatus: 'pending',
+        }, { merge: true });
+        return { uploadUrl, storagePath, docId };
+    }
+
+    return { uploadUrl, storagePath };
+});
+
+export const updateProfilePicture = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+
+    const { storagePath } = data;
+    if (!storagePath) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing storagePath.');
+    }
+
+    const uid = context.auth.uid;
+    const bucket = storage.bucket();
+    const file = bucket.file(storagePath);
+
+    const [downloadUrl] = await file.getSignedUrl({
         action: 'read',
-        expires: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
+        expires: '03-09-2491', // Far future date
     });
 
-    // Update profile with the URL
+    await admin.auth().updateUser(uid, { photoURL: downloadUrl });
     const profileRef = db.collection('profiles').doc(uid);
-    await profileRef.set({
-        kycDocumentURL: downloadUrl,
-        verificationStatus: 'pending',
-    }, { merge: true });
+    await profileRef.update({ photoURL: downloadUrl });
 
-    return { uploadUrl, storagePath, docId, downloadUrl };
+    return { success: true, photoURL: downloadUrl };
 });
+
 
 /**
  * Generates a short-lived read-only signed URL for a file.
