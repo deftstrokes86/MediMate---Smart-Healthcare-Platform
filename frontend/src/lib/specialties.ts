@@ -1,0 +1,22 @@
+
+export const medicalSpecialties = [
+  "General Practice",
+  "Cardiology",
+  "Dermatology",
+  "Endocrinology",
+  "Gastroenterology",
+  "Hematology",
+  "Infectious Disease",
+  "Neurology",
+  "Oncology",
+  "Pediatrics",
+  "Psychiatry",
+  "Pulmonology",
+  "Rheumatology",
+  "Urology",
+  "Ophthalmology",
+  "Orthopedics",
+  "Otolaryngology (ENT)",
+  "Nephrology",
+  "Obstetrics & Gynecology",
+];
