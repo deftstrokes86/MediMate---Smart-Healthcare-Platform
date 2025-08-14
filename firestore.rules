@@ -3,50 +3,58 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // USERS: Publicly readable data for profiles
+    
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Users can read their own user doc and admins can read any
     match /users/{userId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
       allow write: if request.auth.uid == userId;
     }
-    
-    // PROFILES: More detailed profile data, only writable by the user or an admin
+
     match /profiles/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId; // Users can update their own profile
-      // Admins can also update profiles (e.g., for verification)
-      allow write: if request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
-    }
-
-    // KYC DOCS: Private documents, only accessible by owner and admins
-    match /kyc_docs/{userId}/{docId} {
-      allow read, write: if request.auth.uid == userId || request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
+      allow write: if request.auth.uid == userId; // Allow users to update their own profiles
+      allow update: if request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['availability', 'lastAvailable'])
+        && (request.resource.data.availability is bool)
+        && (request.resource.data.lastAvailable is timestamp);
     }
     
-    // ADMIN INVITES: Writeable by super_admins, readable/updateable by token holder during signup
+    // Admins can manage invites
     match /adminInvites/{token} {
-      allow read: if true; // Allows the invitee to read the doc with the token
-      allow create: if request.auth.token.role == 'super_admin';
-      allow update: if request.auth.uid != null; // Allow an authenticated user to mark it as 'used'
+        allow read, write: if request.auth.token.role == 'super_admin';
     }
 
-    // AUDITS: Write-only for admins.
-    match /audits/{auditId} {
-        allow read: if request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
-        allow create: if request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin';
+     // Rules for providers collection
+    match /providers/{providerId} {
+      allow read: if request.auth != null;
+      allow update: if request.auth.uid == providerId
+        && request.resource.data.keys().hasOnly(['availability', 'lastAvailable'])
+        && (request.resource.data.availability is bool)
+        && (request.resource.data.lastAvailable is timestamp);
     }
 
+    // Rules for patients collection
     match /patients/{patientId} {
-      allow read, update: if request.auth != null && (request.auth.uid == patientId || request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin' || request.auth.token.role == 'doctor');
-      allow create: if request.auth.uid == patientId;
+      allow read: if request.auth != null && (request.auth.uid == patientId || request.auth.token.role == 'admin');
+      allow update: if request.auth.uid == patientId
+        && request.resource.data.keys().hasOnly(['requestedSpecialty', 'location', 'matchStatus', 'matchedProviderId']);
     }
 
     match /consultations/{consultationId} {
-        allow read, write: if request.auth != null && (request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.providerId);
-        
-        match /iceCandidates/{candidateId} {
-             allow read, write: if request.auth != null && (request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.patientId || request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.providerId);
-        }
+      allow read, write: if request.auth.uid == resource.data.patientId ||
+                          request.auth.uid == resource.data.providerId;
+      
+      match /chat/{messageId} {
+        allow read: if get(/databases/$(database)/documents/consultations/$(consultationId)).data.patientId == request.auth.uid ||
+                     get(/databases/$(database)/documents/consultations/$(consultationId)).data.providerId == request.auth.uid;
+        allow create: if request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.patientId ||
+                       request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.providerId;
+      }
     }
   }
 }

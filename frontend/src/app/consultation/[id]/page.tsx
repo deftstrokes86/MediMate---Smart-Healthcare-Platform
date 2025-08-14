@@ -3,12 +3,13 @@
 
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Video, Phone, MessageSquare, Mic, MicOff, VideoOff, PhoneOff, Loader2, Sparkles, UserCircle } from 'lucide-react';
+import { Video, Phone, Mic, MicOff, VideoOff, PhoneOff, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useWebRTC } from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import Chat from '@/components/consultation/Chat';
 
 export default function ConsultationPage() {
     const { id } = useParams();
@@ -30,11 +31,11 @@ export default function ConsultationPage() {
         remoteUser
     } = useWebRTC(consultationId, user?.uid, user?.role);
 
-    if (authLoading) {
+    if (authLoading || !user) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="ml-4">Loading user...</p>
+                <p className="ml-4">Loading session...</p>
             </div>
         );
     }
@@ -69,7 +70,7 @@ export default function ConsultationPage() {
                                 {remoteUser ? (
                                     <>
                                         <Avatar className="h-6 w-6">
-                                            {/* <AvatarImage src={remoteUser.photoURL} /> */}
+                                            <AvatarImage src={remoteUser?.photoURL || undefined} />
                                             <AvatarFallback>{remoteUserName?.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <span>{remoteUserName}</span>
@@ -85,18 +86,8 @@ export default function ConsultationPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <MessageSquare />
-                                    Chat
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                Chat placeholder
-                            </CardContent>
-                        </Card>
+                    <div className="space-y-4 h-[60vh] lg:h-auto">
+                        <Chat consultationId={consultationId} currentUser={user} />
                     </div>
                 </CardContent>
                  <CardFooter className="flex-col items-center gap-4 border-t pt-6">
