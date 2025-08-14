@@ -92,4 +92,3 @@ const InfoRow = ({ label, value }: { label: string, value?: string }) => (
         <span className="font-medium text-right">{value || "Not provided"}</span>
     </div>
 );
-
