@@ -26,6 +26,7 @@ export interface Profile {
   role: Role;
   email?: string;
   phone?: string;
+  bio?: string;
   dob?: Timestamp;
   gender?: 'male'|'female'|'other';
   address?: {
@@ -37,6 +38,7 @@ export interface Profile {
   };
   languages?: string[];                // e.g. ['en','yo','ig','ha']
   specialties?: string[];              // clinical specialties (doctors)
+  services?: string[];                 // for labs, pharmacies, hospitals
   employerOrgId?: string;              // for staff accounts (pointer to org collection)
   isVerified: boolean;                 // set ONLY by server
   verificationStatus: 'none'|'pending'|'approved'|'rejected';

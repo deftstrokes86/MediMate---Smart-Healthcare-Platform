@@ -26,6 +26,7 @@ export interface Profile {
   role: Role;
   email?: string;
   phone?: string;
+  bio?: string;
   dob?: Timestamp;
   gender?: 'male'|'female'|'other';
   address?: {
@@ -37,6 +38,7 @@ export interface Profile {
   };
   languages?: string[];
   specialties?: string[];
+  services?: string[];
   employerOrgId?: string;
   isVerified: boolean;
   verificationStatus: 'none'|'pending'|'approved'|'rejected';
