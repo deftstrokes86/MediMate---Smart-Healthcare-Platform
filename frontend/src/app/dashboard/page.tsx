@@ -9,10 +9,12 @@ import { usePatientMatch } from "@/hooks/use-patient-match";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
     const { patient, provider, loading: matchLoading } = usePatientMatch();
+    const router = useRouter();
 
     const isGuardian = user?.profile?.patientData?.isMinor === true;
     const patientName = isGuardian 
@@ -28,6 +30,12 @@ export default function PatientDashboardPage() {
         : "Your personal health overview.";
     
     const showMatchCard = patient?.matchStatus === 'matched' && provider;
+
+    const handleJoinConsultation = () => {
+        if (patient) {
+            router.push(`/consultation/${patient.uid}`);
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -58,7 +66,7 @@ export default function PatientDashboardPage() {
                             <p className="font-bold text-lg">{provider.displayName}</p>
                             <p className="text-muted-foreground">{provider.specialties?.join(', ')}</p>
                         </div>
-                        <Button size="lg" className="w-full sm:w-auto">
+                        <Button size="lg" className="w-full sm:w-auto" onClick={handleJoinConsultation}>
                             Join Consultation
                         </Button>
                     </CardContent>

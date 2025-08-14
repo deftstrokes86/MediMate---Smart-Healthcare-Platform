@@ -7,9 +7,17 @@ import { useProviderMatch } from "@/hooks/use-provider-match";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export default function DoctorDashboardPage() {
     const { matchedPatient, loading } = useProviderMatch();
+    const router = useRouter();
+
+    const handleStartConsultation = () => {
+        if (matchedPatient) {
+            router.push(`/consultation/${matchedPatient.uid}`);
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -46,7 +54,7 @@ export default function DoctorDashboardPage() {
                             <p className="font-bold text-lg">{matchedPatient.displayName}</p>
                             <p className="text-muted-foreground">Wants to consult about: <span className="font-semibold text-primary">{matchedPatient.requestedSpecialty}</span></p>
                         </div>
-                        <Button size="lg" className="w-full sm:w-auto">
+                        <Button size="lg" className="w-full sm:w-auto" onClick={handleStartConsultation}>
                             Start Consultation
                         </Button>
                     </CardContent>

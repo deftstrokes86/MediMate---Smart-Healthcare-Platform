@@ -7,7 +7,6 @@ import { db } from '@/services/firebase';
 import type { Patient } from '@/lib/types/patient';
 import type { Profile } from '@/lib/types/profile';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
 
 interface MatchData {
   patient: Patient | null;
@@ -17,7 +16,6 @@ interface MatchData {
 
 export function usePatientMatch(): MatchData {
   const { user } = useAuth();
-  const router = useRouter();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [provider, setProvider] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +39,6 @@ export function usePatientMatch(): MatchData {
             const providerDoc = await getDoc(providerDocRef);
             if (providerDoc.exists()) {
               setProvider(providerDoc.data() as Profile);
-              router.push(`/consultation/${user.uid}`);
             } else {
               setProvider(null);
             }
@@ -63,7 +60,7 @@ export function usePatientMatch(): MatchData {
     });
 
     return () => unsubscribe();
-  }, [user, router]);
+  }, [user]);
 
   return { patient, provider, loading };
 }
