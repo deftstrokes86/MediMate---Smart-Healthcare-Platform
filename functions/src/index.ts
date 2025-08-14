@@ -306,7 +306,8 @@ export const matchPatients = functions.firestore
 
         transaction.update(patientRef, {
             matchStatus: "matched",
-            matchedProviderId: bestProvider.id
+            matchedProviderId: bestProvider.id,
+            matchedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         transaction.update(providerRef, {
@@ -314,6 +315,47 @@ export const matchPatients = functions.firestore
         });
     });
   });
+
+
+export const clearStaleMatches = functions.pubsub.schedule("every 5 minutes").onRun(async (context) => {
+  const now = admin.firestore.Timestamp.now();
+  const fiveMinutesAgo = admin.firestore.Timestamp.fromMillis(now.toMillis() - 5 * 60 * 1000);
+
+  const staleMatchesQuery = db.collection("patients")
+    .where("matchStatus", "==", "matched")
+    .where("matchedAt", "<=", fiveMinutesAgo);
+
+  const staleMatchesSnap = await staleMatchesQuery.get();
+
+  if (staleMatchesSnap.empty) {
+    functions.logger.info("No stale matches found.");
+    return null;
+  }
+
+  const batch = db.batch();
+
+  staleMatchesSnap.docs.forEach(doc => {
+    const patient = doc.data();
+    const providerId = patient.matchedProviderId;
+
+    functions.logger.info(`Resetting stale match for patient ${doc.id} with provider ${providerId}.`);
+
+    // Reset patient
+    batch.update(doc.ref, {
+      matchStatus: "waiting",
+      matchedProviderId: null,
+      matchedAt: null, // Clear the timestamp
+    });
+
+    // Make provider available again
+    if (providerId) {
+      const providerRef = db.collection("profiles").doc(providerId);
+      batch.update(providerRef, { availability: true });
+    }
+  });
+
+  return batch.commit();
+});
 
 
 // STUB FUNCTIONS - To be implemented with real services
@@ -344,6 +386,8 @@ export const expiryMonitor = functions.pubsub.schedule('every 24 hours').onRun(a
     // Create notifications or audits.
     return null;
 });
+
+    
 
     
 

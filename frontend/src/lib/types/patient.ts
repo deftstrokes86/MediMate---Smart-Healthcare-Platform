@@ -1,3 +1,4 @@
+import type { FieldValue } from 'firebase/firestore';
 import type { GeoPoint } from './profile';
 
 export type MatchStatus = "waiting" | "matched" | "in_consult" | "completed";
@@ -8,4 +9,7 @@ export interface Patient {
   requestedSpecialty?: string;
   matchStatus: MatchStatus;
   matchedProviderId?: string | null;
+  matchedAt?: FieldValue | null;
 }
+
+    
