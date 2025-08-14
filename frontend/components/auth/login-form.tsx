@@ -12,9 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
-import { auth, db } from '@/services/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -30,40 +27,8 @@ const GoogleIcon = () => (
     </svg>
 );
 
-async function loginWithGoogle(): Promise<UserCredential> {
-    const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const firebaseUser = userCredential.user;
-
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const userDoc = await getDoc(userDocRef);
-
-    if (!userDoc.exists()) {
-        // New user, create documents
-        const userDocPayload = {
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            provider: firebaseUser.providerId,
-            createdAt: serverTimestamp(),
-            roles: { patient: true } // Default role
-        };
-        await setDoc(userDocRef, userDocPayload);
-
-        const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
-        await setDoc(profileDocRef, {
-            isVerified: true, // Google users are considered verified
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            patientData: { isMinor: false }
-        });
-    }
-    return userCredential;
-}
-
-
 export default function LoginForm() {
-  const { loginWithEmail } = useAuth();
+  const { loginWithEmail, loginWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
