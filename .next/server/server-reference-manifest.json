@@ -1,17 +1,5 @@
 {
-  "node": {
-    "404644a54833565c1d52affcf9a649a2017f772387": {
-      "workers": {
-        "app/symptom-checker/page": {
-          "moduleId": "[project]/.next-internal/server/app/symptom-checker/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/symptom-checker/page": "action-browser"
-      }
-    }
-  },
+  "node": {},
   "edge": {},
   "encryptionKey": "a9f5T9t/vMFaYLyFYXum6pK8m9ItUJtBf3vruqeYCpY="
 }

@@ -4,7 +4,7 @@
 import React from "react";
 import ProviderProfilePage from "@/components/profile/ProviderProfilePage";
 import { useAuth } from "@/contexts/auth-context";
-import { Stethoscope, User } from "lucide-react";
+import { Stethoscope } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
