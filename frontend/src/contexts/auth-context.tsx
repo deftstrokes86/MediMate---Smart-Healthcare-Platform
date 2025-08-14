@@ -22,6 +22,7 @@ type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | '
 
 interface UserProfile {
     isVerified?: boolean;
+    usePseudonym?: boolean;
     patientData?: {
         isMinor: boolean;
         childProfile?: any;
@@ -196,6 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         allergies: additionalData.allergies,
                         chronicConditions: additionalData.chronicConditions,
                     };
+                    profileData.pseudonym = additionalData.pseudonym;
+                    profileData.usePseudonym = additionalData.usePseudonym;
                 }
                 break;
             case 'doctor':

@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, onSnapshot, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, addDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import type { Role } from '@/lib/types/profile';
+import type { Role, Profile } from '@/lib/types/profile';
 import type { Consultation, RTCSessionDescription } from '@/lib/types/consultation';
 import { useRouter } from 'next/navigation';
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
@@ -29,6 +29,8 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
     const [isBlurOn, setIsBlurOn] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>('new');
+    const [localUser, setLocalUser] = useState<Profile | null>(null);
+    const [remoteUser, setRemoteUser] = useState<Profile | null>(null);
     
     const pc = useRef<RTCPeerConnection | null>(null);
     const unprocessedLocalStream = useRef<MediaStream | null>(null);
@@ -221,6 +223,15 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
         const unsubscribe = onSnapshot(consultationRef, async (snapshot) => {
             const consultationData = snapshot.data() as Consultation;
 
+            const fetchUsers = async () => {
+                const localProfileDoc = await getDoc(doc(db, 'profiles', currentUserId));
+                setLocalUser(localProfileDoc.data() as Profile);
+
+                const remoteUserId = currentUserRole === 'patient' ? consultationData.providerId : consultationData.patientId;
+                const remoteProfileDoc = await getDoc(doc(db, 'profiles', remoteUserId));
+                setRemoteUser(remoteProfileDoc.data() as Profile);
+            };
+
              if (consultationData.status === 'ended') {
                 endCall();
                 return;
@@ -230,7 +241,7 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
             if (currentUserRole === 'patient' && !consultationData.offer) {
                 const stream = await setupMedia();
                 if (!stream) return;
-
+                fetchUsers();
                 initializePeerConnection(stream);
 
                 const offerDescription = await pc.current!.createOffer();
@@ -252,7 +263,7 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
             if (currentUserRole === 'doctor' && consultationData.offer && !consultationData.answer) {
                 const stream = await setupMedia();
                 if (!stream) return;
-
+                fetchUsers();
                 initializePeerConnection(stream);
                 
                 const iceCandidatesCollection = collection(consultationRef, 'iceCandidates');
@@ -325,5 +336,18 @@ export function useWebRTC(consultationId: string, currentUserId?: string, curren
         }
     };
 
-    return { localStream, remoteStream, isMuted, isVideoOff, isBlurOn, toggleMute, toggleVideo, toggleBlur, endCall, connectionState };
+    return { 
+        localStream, 
+        remoteStream, 
+        isMuted, 
+        isVideoOff, 
+        isBlurOn, 
+        toggleMute, 
+        toggleVideo, 
+        toggleBlur, 
+        endCall, 
+        connectionState,
+        localUser,
+        remoteUser
+    };
 }

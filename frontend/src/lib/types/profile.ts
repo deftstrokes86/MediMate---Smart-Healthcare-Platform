@@ -1,3 +1,4 @@
+
 import type { FieldValue, Timestamp } from 'firebase/firestore';
 
 export type Role = 'patient'|'doctor'|'pharmacy'|'medical_lab'|'hospital'|'admin';
@@ -20,6 +21,8 @@ export interface Profile {
   displayName: string;
   firstName?: string;
   lastName?: string;
+  pseudonym?: string;
+  usePseudonym?: boolean;
   role: Role;
   email?: string;
   phone?: string;

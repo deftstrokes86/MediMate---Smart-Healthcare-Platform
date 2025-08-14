@@ -3,10 +3,12 @@
 
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Video, Phone, MessageSquare, Mic, MicOff, VideoOff, PhoneOff, Loader2, Sparkles } from 'lucide-react';
+import { Video, Phone, MessageSquare, Mic, MicOff, VideoOff, PhoneOff, Loader2, Sparkles, UserCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useWebRTC } from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ConsultationPage() {
     const { id } = useParams();
@@ -23,7 +25,9 @@ export default function ConsultationPage() {
         toggleVideo,
         toggleBlur,
         endCall,
-        connectionState
+        connectionState,
+        localUser,
+        remoteUser
     } = useWebRTC(consultationId, user?.uid, user?.role);
 
     if (authLoading) {
@@ -34,6 +38,9 @@ export default function ConsultationPage() {
             </div>
         );
     }
+
+    const localUserName = localUser?.usePseudonym ? localUser.pseudonym : localUser?.displayName;
+    const remoteUserName = remoteUser?.usePseudonym ? remoteUser.pseudonym : remoteUser?.displayName;
     
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -41,7 +48,7 @@ export default function ConsultationPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Video className="text-primary" />
-                        Consultation In Progress
+                        Consultation with {remoteUserName || '...'}
                     </CardTitle>
                     <CardDescription>
                         Consultation ID: {consultationId} - Status: <span className="font-semibold capitalize">{connectionState}</span>
@@ -55,14 +62,25 @@ export default function ConsultationPage() {
                             ) : (
                                 <div className="flex flex-col items-center gap-2">
                                     <Loader2 className="animate-spin h-8 w-8"/>
-                                    <p>Waiting for other user to connect...</p>
+                                    <p>Waiting for {remoteUserName || 'other user'} to connect...</p>
                                 </div>
                             )}
+                            <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2">
+                                {remoteUser ? (
+                                    <>
+                                        <Avatar className="h-6 w-6">
+                                            {/* <AvatarImage src={remoteUser.photoURL} /> */}
+                                            <AvatarFallback>{remoteUserName?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span>{remoteUserName}</span>
+                                    </>
+                                ) : <Skeleton className="h-6 w-24" />}
+                            </div>
                             <div className="absolute bottom-4 right-4 w-1/4 max-w-[200px] aspect-video rounded-md overflow-hidden border-2 border-white/50">
                                  {localStream && !isVideoOff ? (
                                     <video ref={el => el && (el.srcObject = localStream)} autoPlay playsInline muted className="h-full w-full object-cover" />
                                  ) : (
-                                    <div className="h-full w-full bg-black/50 flex items-center justify-center text-xs">Local video off</div>
+                                    <div className="h-full w-full bg-black/50 flex items-center justify-center text-xs text-center p-2">Local video off</div>
                                  )}
                             </div>
                         </div>
@@ -95,6 +113,9 @@ export default function ConsultationPage() {
                          <Button onClick={endCall} variant="destructive" size="icon" className="rounded-full h-12 w-12">
                             <PhoneOff />
                         </Button>
+                    </div>
+                     <div className="text-sm text-muted-foreground mt-2">
+                        You are in this call as: <strong>{localUserName || '...'}</strong>
                     </div>
                 </CardFooter>
             </Card>
