@@ -15,7 +15,7 @@ import {
     signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
-import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 type Role = 'patient' | 'doctor' | 'pharmacist' | 'medical_lab' | 'hospital' | 'admin' | 'super_admin';
@@ -53,78 +53,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        console.log('AuthProvider mounted. Setting up onAuthStateChanged listener.');
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            console.log('onAuthStateChanged event fired.');
+        let profileUnsubscribe: (() => void) | null = null;
+
+        const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            // Clean up previous profile listener if it exists
+            if (profileUnsubscribe) {
+                profileUnsubscribe();
+            }
+
             if (firebaseUser) {
-                console.log(`User detected: ${firebaseUser.uid}. Forcing token refresh...`);
                 try {
                     const idTokenResult = await firebaseUser.getIdTokenResult(true);
-                    console.log('Token refreshed. Claims found:', idTokenResult.claims);
                     const role = (idTokenResult.claims.role as Role) || 'patient';
                     
                     const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
-                    const profileDoc = await getDoc(profileDocRef);
-                    const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
-                    
-                    const authUser: AuthUser = { ...firebaseUser, role, profile };
-                    setUser(authUser);
 
-                    console.log(`User role identified as: '${role}'. Preparing to redirect.`);
-                    
-                    const currentPath = window.location.pathname;
-                    
-                    if (role === 'admin' || role === 'super_admin') {
-                        if (!currentPath.startsWith('/admin')) {
-                            console.log("Redirecting to /admin/dashboard...");
-                            router.replace('/admin/dashboard');
+                    // Set up real-time listener for the profile
+                    profileUnsubscribe = onSnapshot(profileDocRef, (profileDoc) => {
+                        const profile = profileDoc.exists() ? (profileDoc.data() as UserProfile) : null;
+                        const authUser: AuthUser = { ...firebaseUser, role, profile };
+                        setUser(authUser);
+
+                        // Only redirect on initial load or role change, not every profile update
+                        if (loading) {
+                            const currentPath = window.location.pathname;
+                            if (role === 'admin' || role === 'super_admin') {
+                                if (!currentPath.startsWith('/admin')) router.replace('/admin/dashboard');
+                            } else if (role === 'doctor') {
+                                if (!currentPath.startsWith('/doctor')) router.replace('/doctor/dashboard');
+                            } else if (role === 'medical_lab') {
+                                if (!currentPath.startsWith('/lab')) router.replace('/lab/dashboard');
+                            } else if (role === 'pharmacist') {
+                                if (!currentPath.startsWith('/pharmacy')) router.replace('/pharmacy/dashboard');
+                            } else if (role === 'hospital') {
+                                if (!currentPath.startsWith('/hospital')) router.replace('/hospital/dashboard');
+                            } else if (role === 'patient') {
+                                // Allow staying on certain public pages even if logged in
+                                const publicOkPaths = ['/', '/about', '/contact', '/features', '/how-it-works', '/faq', '/privacy-policy', '/terms', '/parental-consent', '/symptom-checker'];
+                                if (!currentPath.startsWith('/dashboard') && !publicOkPaths.includes(currentPath)) {
+                                    router.replace('/dashboard');
+                                }
+                            }
                         }
-                    } else if (role === 'doctor') {
-                         if (!currentPath.startsWith('/doctor')) {
-                            console.log("Redirecting to /doctor/dashboard...");
-                            router.replace('/doctor/dashboard');
-                         }
-                    } else if (role === 'medical_lab') {
-                        if (!currentPath.startsWith('/lab')) {
-                            console.log("Redirecting to /lab/dashboard...");
-                            router.replace('/lab/dashboard');
-                        }
-                    } else if (role === 'pharmacist') {
-                        if (!currentPath.startsWith('/pharmacy')) {
-                            console.log("Redirecting to /pharmacy/dashboard...");
-                            router.replace('/pharmacy/dashboard');
-                        }
-                    } else if (role === 'hospital') {
-                        if (!currentPath.startsWith('/hospital')) {
-                            console.log("Redirecting to /hospital/dashboard...");
-                            router.replace('/hospital/dashboard');
-                        }
-                    } else if (role === 'patient') {
-                        if (!currentPath.startsWith('/dashboard')) {
-                            console.log("Redirecting to /dashboard...");
-                            router.replace('/dashboard');
-                        }
-                    } else {
-                        console.log("Already on the correct page or no specific redirect rule matched.");
-                    }
+                         setLoading(false);
+                    });
 
                 } catch (error) {
-                    console.error("Error refreshing token or processing claims:", error);
+                    console.error("Error setting up user session:", error);
                     setUser(null);
+                    setLoading(false);
                 }
             } else {
-                console.log('No user detected. Setting user state to null.');
                 setUser(null);
+                setLoading(false);
             }
-            setLoading(false);
-            console.log('Auth loading state set to false.');
         });
 
         return () => {
-            console.log('AuthProvider unmounting. Unsubscribing from onAuthStateChanged.');
-            unsubscribe();
+            authUnsubscribe();
+            if (profileUnsubscribe) {
+                profileUnsubscribe();
+            }
         };
-    }, [router]);
+    }, [router, loading]);
 
     const signupWithEmail = async (email: string, password: string, displayName: string, role: Role, additionalData: any = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -151,15 +142,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
         let profileData: { [key: string]: any } = {
+            displayName,
+            email,
+            role,
             isVerified: role === 'super_admin' || (role === 'patient' && additionalData.patientType !== 'minor'),
+            verificationStatus: 'none',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
+        if (role === 'doctor') {
+             profileData.verificationStatus = 'pending';
+        }
+
 
         switch (role) {
             case 'patient':
                 if (additionalData.patientType === 'minor') {
                     profileData.isVerified = false;
+                    profileData.verificationStatus = 'pending';
                     profileData.patientData = {
                         isMinor: true,
                         childProfile: {
@@ -180,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         }
                     };
                 } else {
+                    profileData.verificationStatus = 'approved';
                     profileData.patientData = {
                         isMinor: false,
                         fullName: additionalData.patientFullName,
@@ -216,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'pharmacist':
+                 profileData.verificationStatus = 'pending';
                 profileData.pharmacistData = {
                     pharmacyName: additionalData.pharmacyName,
                     address: additionalData.pharmacyAddress,
@@ -225,6 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'medical_lab':
+                 profileData.verificationStatus = 'pending';
                 profileData.medicalLabData = {
                     labName: additionalData.labName,
                     address: additionalData.labAddress,
@@ -234,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
             case 'hospital':
+                 profileData.verificationStatus = 'pending';
                 profileData.hospitalData = {
                     hospitalName: additionalData.hospitalName,
                     address: additionalData.hospitalAddress,
@@ -243,6 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 break;
              case 'super_admin':
+                 profileData.verificationStatus = 'approved';
                 profileData.phone = additionalData.phone;
                 break;
         }
@@ -260,11 +265,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await signInWithPopup(auth, provider);
         const firebaseUser = userCredential.user;
 
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
+        const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
+        const profileDoc = await getDoc(profileDocRef);
 
-        if (!userDoc.exists()) {
-            // New user, create documents
+        if (!profileDoc.exists()) {
+             // New user, create documents
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
             const userDocPayload = {
                 email: firebaseUser.email,
                 displayName: firebaseUser.displayName,
@@ -275,9 +281,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             await setDoc(userDocRef, userDocPayload);
 
-            const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
             await setDoc(profileDocRef, {
-                isVerified: true, // Google users are considered verified
+                displayName: firebaseUser.displayName,
+                email: firebaseUser.email,
+                photoURL: firebaseUser.photoURL,
+                role: 'patient',
+                isVerified: true,
+                verificationStatus: 'approved',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 patientData: { isMinor: false }
