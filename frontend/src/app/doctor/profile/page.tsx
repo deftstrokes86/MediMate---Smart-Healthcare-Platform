@@ -1,16 +1,20 @@
 
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { RoleBadge, VerificationStatusBadge } from "@/components/admin/badges";
-import { Loader2, User, Award, Briefcase, FileBadge2, Edit } from "lucide-react";
+import { Loader2, User, Briefcase, FileBadge2, Edit, Save, X } from "lucide-react";
 import KycUploader from "@/components/kyc/KycUploader";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function DoctorProfilePage() {
     const { user, loading } = useAuth();
+    const [isEditing, setIsEditing] = useState(false);
 
     if (loading || !user) {
         return (
@@ -44,23 +48,34 @@ export default function DoctorProfilePage() {
                            {user.email} <VerificationStatusBadge status={verificationStatus} />
                         </CardDescription>
                     </div>
-                     <Button variant="outline">
-                        <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                    </Button>
+                     {isEditing ? (
+                        <div className="flex gap-2">
+                             <Button onClick={() => setIsEditing(false)} variant="outline">
+                                <X className="mr-2 h-4 w-4" /> Cancel
+                            </Button>
+                            <Button onClick={() => setIsEditing(false)}>
+                                <Save className="mr-2 h-4 w-4" /> Save Changes
+                            </Button>
+                        </div>
+                    ) : (
+                         <Button onClick={() => setIsEditing(true)} variant="outline">
+                            <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent className="p-6 grid md:grid-cols-2 gap-8">
                      <ProfileSection icon={<User className="text-primary"/>} title="Personal Information">
-                        <InfoRow label="Full Name" value={doctorData?.fullName} />
-                        <InfoRow label="Gender" value={doctorData?.gender} />
-                        <InfoRow label="Date of Birth" value={doctorData?.dob} />
-                        <InfoRow label="Nationality" value={doctorData?.nationality} />
+                        <InfoRow label="Full Name" value={doctorData?.fullName} isEditing={isEditing} />
+                        <InfoRow label="Gender" value={doctorData?.gender} isEditing={isEditing} />
+                        <InfoRow label="Date of Birth" value={doctorData?.dob} isEditing={isEditing} type="date" />
+                        <InfoRow label="Nationality" value={doctorData?.nationality} isEditing={isEditing} />
                      </ProfileSection>
 
                       <ProfileSection icon={<Briefcase className="text-primary"/>} title="Professional Details">
-                        <InfoRow label="Specialization" value={doctorData?.specialization} />
-                        <InfoRow label="Years of Experience" value={doctorData?.yearsOfExperience} />
-                        <InfoRow label="MDCN License" value={doctorData?.medicalLicenseNumber} />
-                        <InfoRow label="Contact Address" value={doctorData?.address} />
+                        <InfoRow label="Specialization" value={doctorData?.specialization} isEditing={isEditing} />
+                        <InfoRow label="Years of Experience" value={doctorData?.yearsOfExperience} isEditing={isEditing} type="number" />
+                        <InfoRow label="MDCN License" value={doctorData?.medicalLicenseNumber} isEditing={isEditing} />
+                        <InfoRow label="Contact Address" value={doctorData?.address} isEditing={isEditing} />
                      </ProfileSection>
                 </CardContent>
              </Card>
@@ -90,10 +105,13 @@ const ProfileSection = ({ icon, title, children }: { icon: React.ReactNode, titl
     </div>
 );
 
-const InfoRow = ({ label, value }: { label: string, value?: string }) => (
-    <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">{label}:</span>
-        <span className="font-medium text-right">{value || "Not provided"}</span>
+const InfoRow = ({ label, value, isEditing, type = 'text' }: { label: string, value?: string, isEditing: boolean, type?: string }) => (
+    <div className="flex justify-between items-center text-sm">
+        <Label className="text-muted-foreground w-1/3">{label}:</Label>
+        {isEditing ? (
+            <Input type={type} defaultValue={value || ""} className="w-2/3" />
+        ) : (
+             <span className="font-medium text-right w-2/3">{value || "Not provided"}</span>
+        )}
     </div>
 );
-

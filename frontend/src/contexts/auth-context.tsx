@@ -40,6 +40,7 @@ interface AuthContextType {
     loading: boolean;
     signupWithEmail: (email: string, password: string, displayName: string, role: Role, additionalData?: any) => Promise<UserCredential>;
     loginWithEmail: (email: string, password: string) => Promise<UserCredential>;
+    loginWithGoogle: () => Promise<UserCredential>;
     logout: () => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
 }
@@ -254,6 +255,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return signInWithEmailAndPassword(auth, email, password);
     };
 
+    const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        const firebaseUser = userCredential.user;
+
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            // New user, create documents
+            const userDocPayload = {
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                provider: firebaseUser.providerId,
+                createdAt: serverTimestamp(),
+                roles: { patient: true } // Default role
+            };
+            await setDoc(userDocRef, userDocPayload);
+
+            const profileDocRef = doc(db, 'profiles', firebaseUser.uid);
+            await setDoc(profileDocRef, {
+                isVerified: true, // Google users are considered verified
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                patientData: { isMinor: false }
+            });
+        }
+        return userCredential;
+    };
+
+
     const logout = async () => {
         await signOut(auth);
         router.push('/login');
@@ -268,6 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signupWithEmail,
         loginWithEmail,
+        loginWithGoogle,
         logout,
         sendPasswordReset
     };
