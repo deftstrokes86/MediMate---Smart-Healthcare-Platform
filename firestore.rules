@@ -1,8 +1,9 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth != null && request.auth.token.role == 'admin';
+      return request.auth != null && request.auth.token.role in ['admin', 'super_admin'];
     }
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
@@ -25,12 +26,19 @@ service cloud.firestore {
                     || (request.auth == null ? false : false);
       // Note: server-side functions (admin SDK) bypass rules so they can update verification fields.
     }
+
+    match /patients/{patientId} {
+      allow read: if isOwner(patientId) || isAdmin();
+       allow create, update: if isOwner(patientId);
+    }
     
-    // users/{uid}
-    match /users/{uid} {
-        allow read: if isOwner(uid) || isAdmin();
-        allow create: if isOwner(uid);
-        allow update: if isOwner(uid) || isAdmin();
+    match /consultations/{consultationId} {
+      allow read, write: if request.auth.uid == resource.data.patientId || request.auth.uid == resource.data.providerId;
+    }
+
+    match /consultations/{consultationId}/chat/{messageId} {
+       allow read, write: if request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.patientId ||
+                             request.auth.uid == get(/databases/$(database)/documents/consultations/$(consultationId)).data.providerId;
     }
 
     // kyc_docs/{uid}/{docId}
@@ -59,34 +67,6 @@ service cloud.firestore {
     match /verifications/{uid}/{versionId} {
       allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isAdmin(); // server-only
-    }
-
-    // organizations/{orgId}
-    match /organizations/{orgId} {
-      allow read: if request.auth != null;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-    }
-    
-    // providers/{providerId}
-     match /providers/{providerId} {
-      allow read: if request.auth != null;
-      allow update: if request.auth.uid == providerId
-        && request.resource.data.keys().hasOnly(['availability', 'lastAvailable'])
-        && (request.resource.data.availability is bool)
-        && (request.resource.data.lastAvailable is timestamp);
-    }
-    
-    // patients/{patientId}
-    match /patients/{patientId} {
-      allow read: if request.auth != null && request.auth.uid == patientId;
-      allow update: if request.auth.uid == patientId
-        && request.resource.data.keys().hasOnly(['requestedSpecialty', 'location', 'matchStatus', 'matchedProviderId']);
-    }
-
-    // default deny
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }
