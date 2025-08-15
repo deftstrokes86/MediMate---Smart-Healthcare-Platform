@@ -3,16 +3,11 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby, HeartPulse, Video } from "lucide-react";
-import RequestConsultationDialog from "@/components/patient/RequestConsultationDialog";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
+import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby } from "lucide-react";
+import MatchStatusCard from "@/components/patient/MatchStatusCard";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
-    const router = useRouter();
 
     const isGuardian = user?.profile?.patientData?.isMinor === true;
     const patientName = isGuardian 
@@ -38,6 +33,8 @@ export default function PatientDashboardPage() {
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-semibold text-sm">Profile Verified</span>
             </div>
+
+            <MatchStatusCard />
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                  <DashboardCard 
@@ -77,23 +74,6 @@ export default function PatientDashboardPage() {
         </div>
     );
 }
-
-const MatchCardSkeleton = () => (
-    <Card className="shadow-lg rounded-2xl">
-        <CardHeader>
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-            <Skeleton className="h-16 w-16 rounded-full" />
-            <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-1/3" />
-                <Skeleton className="h-4 w-1/4" />
-            </div>
-            <Skeleton className="h-12 w-full sm:w-36 rounded-md" />
-        </CardContent>
-    </Card>
-)
 
 const DashboardCard = ({ icon, title, value, description }: { icon: React.ReactNode, title: string, value: string, description: string }) => (
     <Card className="shadow-sm rounded-2xl">
