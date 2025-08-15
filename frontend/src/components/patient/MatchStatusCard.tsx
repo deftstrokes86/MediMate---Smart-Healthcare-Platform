@@ -59,7 +59,7 @@ export default function MatchStatusCard() {
                          <Loader2 className="animate-spin" />
                         Searching for a Doctor
                     </CardTitle>
-                </Header>
+                </CardHeader>
                 <CardContent>
                      <p className="text-muted-foreground">
                         We are currently searching for an available doctor specializing in <span className="font-semibold text-blue-700">{patient.requestedSpecialty?.replace(/_/g, ' ')}</span>. Please wait, this may take a few moments.

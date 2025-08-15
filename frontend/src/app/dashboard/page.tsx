@@ -62,7 +62,7 @@ export default function PatientDashboardPage() {
                     <CardTitle className="flex items-center gap-2">
                         <Bell className="text-amber-500" />
                         Notifications & Alerts
-                    </Title>
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ul className="space-y-3">
