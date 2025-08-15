@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby, HeartPulse, Video } from "lucide-react";
 import RequestConsultationDialog from "@/components/patient/RequestConsultationDialog";
-import { usePatientMatch } from "@/hooks/use-patient-match";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +12,6 @@ import { useRouter } from "next/navigation";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
-    const { patient, provider, loading: matchLoading } = usePatientMatch();
     const router = useRouter();
 
     const isGuardian = user?.profile?.patientData?.isMinor === true;
@@ -29,14 +27,6 @@ export default function PatientDashboardPage() {
         ? "Your child's personal health overview."
         : "Your personal health overview.";
     
-    const showMatchCard = patient?.matchStatus === 'matched' && provider;
-
-    const handleJoinConsultation = () => {
-        if (patient) {
-            router.push(`/consultation/${patient.uid}`);
-        }
-    }
-
     return (
         <div className="space-y-6">
             <div>
@@ -44,60 +34,6 @@ export default function PatientDashboardPage() {
                 <p className="text-muted-foreground">{subMessage}</p>
             </div>
             
-            {matchLoading && <MatchCardSkeleton />}
-
-            {showMatchCard && (
-                <Card className="shadow-lg rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/50 animate-in fade-in-50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-primary">
-                            <Video />
-                            We've found a doctor for you!
-                        </CardTitle>
-                        <CardDescription>
-                            You have been matched for your consultation request.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={provider.photoURL} />
-                            <AvatarFallback>{provider.displayName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-center sm:text-left">
-                            <p className="font-bold text-lg">{provider.displayName}</p>
-                            <p className="text-muted-foreground">{provider.specialties?.join(', ')}</p>
-                        </div>
-                        <Button size="lg" className="w-full sm:w-auto" onClick={handleJoinConsultation}>
-                            Join Consultation
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-
-            {!showMatchCard && patient?.matchStatus !== 'matched' && (
-                <Card className="shadow-sm rounded-2xl bg-primary/5 border-primary/20">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <HeartPulse className="text-primary" />
-                            Need to see a doctor?
-                        </CardTitle>
-                        <CardDescription>
-                            Start a new consultation request to get matched with a specialist near you.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       {patient?.matchStatus === 'waiting' ? (
-                           <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                               <p className="font-semibold text-amber-800">Searching for a doctor for you...</p>
-                               <p className="text-sm text-amber-700">We'll notify you here as soon as you're matched.</p>
-                           </div>
-                       ) : (
-                           <RequestConsultationDialog />
-                       )}
-                    </CardContent>
-                </Card>
-            )}
-
-
              <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 w-fit">
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-semibold text-sm">Profile Verified</span>
@@ -129,7 +65,7 @@ export default function PatientDashboardPage() {
                     <CardTitle className="flex items-center gap-2">
                         <Bell className="text-amber-500" />
                         Notifications & Alerts
-                    </CardTitle>
+                    </Title>
                 </CardHeader>
                 <CardContent>
                     <ul className="space-y-3">
