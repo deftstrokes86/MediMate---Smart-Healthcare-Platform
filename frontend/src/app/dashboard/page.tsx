@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar, Pill, FlaskConical, Bell, CheckCircle, Baby } from "lucide-react";
+import MatchStatusCard from "@/components/patient/MatchStatusCard";
 
 export default function PatientDashboardPage() {
     const { user } = useAuth();
@@ -31,6 +33,8 @@ export default function PatientDashboardPage() {
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-semibold text-sm">Profile Verified</span>
             </div>
+
+            <MatchStatusCard />
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                  <DashboardCard 
