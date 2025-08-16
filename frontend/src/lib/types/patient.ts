@@ -1,3 +1,4 @@
+
 import type { FieldValue } from 'firebase/firestore';
 import type { GeoPoint } from './profile';
 
@@ -11,5 +12,3 @@ export interface Patient {
   matchedProviderId?: string | null;
   matchedAt?: FieldValue | null;
 }
-
-    
